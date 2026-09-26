@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Propinas - Rendición Oficial</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+    <!-- Modal de Autenticación -->
+    <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-slate-100">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900">Portal de Transparencia</h2>
+                <p class="text-slate-500 text-sm mt-1">Ingresa el PIN de acceso autorizado</p>
+            </div>
+            
+            <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Clave de Acceso</label>
+                    <input type="password" id="pinInput" placeholder="Ej: 1234" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-center text-lg font-bold tracking-widest">
+                </div>
+                <p id="authError" class="text-rose-500 text-xs text-center hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i> Clave incorrecta. Intenta nuevamente.</p>
+                <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-600/30">
+                    Verificar e Ingresar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Panel del Dashboard -->
+    <div id="dashboardContent" class="hidden min-h-screen pb-12">
+        <!-- Navegación Header -->
+        <nav class="bg-white border-b border-slate-200 sticky top-0 z-30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-2 bg-emerald-600 text-white rounded-lg">
+                            <i class="fa-solid fa-hand-holding-dollar text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-lg font-bold text-slate-900 leading-tight">Control Oficial de Propinas</h1>
+                            <p class="text-xs text-slate-500">Origen directo: Planilla Google Drive (Pestaña Resumen)</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3">
+                        <span id="syncBadge" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                            <span class="w-2 h-2 mr-1.5 bg-slate-400 rounded-full"></span>
+                            Sin conectar
+                        </span>
+
+                        <button id="syncBtn" onclick="fetchLiveData()" class="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg transition-all border border-slate-200">
+                            <i id="syncIcon" class="fa-solid fa-rotate"></i>
+                            <span>Actualizar</span>
+                        </button>
+
+                        <div class="h-6 w-px bg-slate-200"></div>
+
+                        <button onclick="logout()" class="text-slate-400 hover:text-slate-600 p-2" title="Cerrar sesión">
+                            <i class="fa-solid fa-right-from-bracket text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Contenido -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
+            
+            <!-- Banner Alerta de Error de Conexión -->
+            <div id="errorAlert" class="hidden bg-rose-50 border border-rose-200 text-rose-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i>
+                    <span><strong>Error de Sincronización:</strong> No se pudo descargar la planilla oficial en vivo. Por transparencia, los datos no se mostrarán hasta restablecer la conexión.</span>
+                </div>
+                <button onclick="fetchLiveData()" class="bg-rose-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-rose-700">Reintentar</button>
+            </div>
+
+            <!-- Banner Confirmación Exitoso -->
+            <div id="syncAlert" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-2.5 rounded-xl flex justify-between items-center transition-all">
+                <span><i class="fa-solid fa-circle-check mr-2 text-emerald-600"></i>Datos validados y sincronizados en tiempo real directamente desde Google Sheets. Hora: <strong id="lastSyncTime">--:--</strong></span>
+                <button onclick="document.getElementById('syncAlert').classList.add('hidden')" class="text-emerald-600 hover:text-emerald-900 font-bold">&times;</button>
+            </div>
+
+            <!-- Cards de Métricas Principales -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Propina Total Mes</span>
+                        <span class="p-2 bg-emerald-50 text-emerald-600 rounded-lg text-sm"><i class="fa-solid fa-wallet"></i></span>
+                    </div>
+                    <div class="mt-4">
+                        <h3 id="kpiTotal" class="text-3xl font-extrabold text-slate-900">--</h3>
+                        <p class="text-xs text-slate-500 mt-1">Consolidado Oficial</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Promedio Diario</span>
+                        <span class="p-2 bg-blue-50 text-blue-600 rounded-lg text-sm"><i class="fa-solid fa-chart-line"></i></span>
+                    </div>
+                    <div class="mt-4">
+                        <h3 id="kpiPromedio" class="text-3xl font-extrabold text-slate-900">--</h3>
+                        <p id="kpiDiasSub" class="text-xs text-slate-500 mt-1">Días con registro</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Máximo Diario</span>
+                        <span class="p-2 bg-purple-50 text-purple-600 rounded-lg text-sm"><i class="fa-solid fa-arrow-trend-up"></i></span>
+                    </div>
+                    <div class="mt-4">
+                        <h3 id="kpiMaximo" class="text-3xl font-extrabold text-slate-900">--</h3>
+                        <p id="kpiMaxFecha" class="text-xs text-slate-500 mt-1">Fecha del pico</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Personal Registrado</span>
+                        <span class="p-2 bg-amber-50 text-amber-600 rounded-lg text-sm"><i class="fa-solid fa-users"></i></span>
+                    </div>
+                    <div class="mt-4">
+                        <h3 id="kpiPersonal" class="text-3xl font-extrabold text-slate-900">--</h3>
+                        <p class="text-xs text-slate-500 mt-1">Colaboradores con asignación</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <h3 class="text-base font-bold text-slate-900 mb-4"><i class="fa-solid fa-calendar-days text-emerald-600 mr-2"></i>Evolución de Propina Diaria</h3>
+                    <div class="h-72">
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <h3 class="text-base font-bold text-slate-900 mb-4"><i class="fa-solid fa-chart-pie text-emerald-600 mr-2"></i>Distribución Oficial por Persona</h3>
+                    <div class="h-72">
+                        <canvas id="staffChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla Dinámica -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="text-base font-bold text-slate-900">Nómina y Desglose por Colaborador</h3>
+                    <span class="text-xs text-slate-400">Pestaña "Resumen"</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 border-b border-slate-100">
+                                <th class="px-6 py-3 font-semibold">Área</th>
+                                <th class="px-6 py-3 font-semibold">Colaborador</th>
+                                <th class="px-6 py-3 font-semibold text-right">Monto Asignado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffTableBody" class="divide-y divide-slate-100 text-slate-700">
+                            <tr><td colspan="3" class="px-6 py-8 text-center text-slate-400">Cargando datos oficiales...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const RAW_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVCGI2Q3WgpJi9rz-FXyQ7ugPGiqY_Nc4e0fBFb8pV1lYtoGrmt1Zlaf6AHpMFBg/pub?gid=1672948599&single=true&output=csv";
+
+        let dailyChartInstance = null;
+        let staffChartInstance = null;
+
+        function formatCLP(val) {
+            return '$' + Math.round(val).toLocaleString('es-CL');
+        }
+
+        function cleanNumber(str) {
+            if (!str) return 0;
+            const cleaned = str.replace(/[^0-9,-]/g, '').replace(',', '.');
+            return parseFloat(cleaned) || 0;
+        }
+
+        function handleAuth(e) {
+            e.preventDefault();
+            const pin = document.getElementById('pinInput').value;
+            if(pin === '1234') {
+                document.getElementById('authModal').classList.add('hidden');
+                document.getElementById('dashboardContent').classList.remove('hidden');
+                fetchLiveData();
+            } else {
+                document.getElementById('authError').classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            document.getElementById('authModal').classList.remove('hidden');
+            document.getElementById('dashboardContent').classList.add('hidden');
+            document.getElementById('pinInput').value = '';
+        }
+
+        function parseCSV(text) {
+            const lines = text.split('\n').map(l => {
+                const row = [];
+                let inQuotes = false;
+                let current = '';
+                for (let char of l) {
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) {
+                        row.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                row.push(current.trim());
+                return row;
+            });
+
+            let totalMes = 0;
+            let dias = [];
+            let propinasDiarias = [];
+            let colaboradores = [];
+            let currentArea = 'Garzones';
+
+            lines.forEach((row) => {
+                const col0 = row[0] || '';
+                const col1 = row[1] || '';
+                const col2 = row[2] || '';
+                const col3 = row[3] || '';
+                const col4 = row[4] || '';
+                const col5 = row[5] || '';
+
+                if (col4.includes('Propina Total Mes')) {
+                    totalMes = cleanNumber(col5);
+                }
+
+                if (/^\d{1,2}-[A-Za-z]{3}$/.test(col0)) {
+                    const monto = cleanNumber(col1);
+                    dias.push(col0);
+                    propinasDiarias.push(monto);
+                }
+
+                if (['Garzones', 'Barra', 'Cocina', 'Part-Time'].includes(col2)) {
+                    currentArea = col2;
+                }
+
+                if (col3 && !['Garzones', 'Barra', 'Cocina', 'Part-Time', 'Total', 'Propina Total Mes', 'Total Propina'].includes(col3) && col4) {
+                    const montoColab = cleanNumber(col4);
+                    if (montoColab > 0) {
+                        let colorClass = 'bg-blue-50 text-blue-700';
+                        if (currentArea === 'Barra') colorClass = 'bg-purple-50 text-purple-700';
+                        if (currentArea === 'Cocina') colorClass = 'bg-amber-50 text-amber-700';
+                        if (currentArea === 'Part-Time') colorClass = 'bg-emerald-50 text-emerald-700';
+
+                        colaboradores.push({
+                            nombre: col3,
+                            area: currentArea,
+                            monto: montoColab,
+                            color: colorClass
+                        });
+                    }
+                }
+            });
+
+            return { totalMes, dias, propinasDiarias, colaboradores };
+        }
+
+        async function fetchLiveData() {
+            const icon = document.getElementById('syncIcon');
+            const badge = document.getElementById('syncBadge');
+            const alertBox = document.getElementById('syncAlert');
+            const errorAlert = document.getElementById('errorAlert');
+            const timeSpan = document.getElementById('lastSyncTime');
+
+            icon.classList.add('fa-spin');
+            badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800";
+            badge.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-amber-500 rounded-full animate-ping"></span>Conectando a Drive...`;
+            errorAlert.classList.add('hidden');
+
+            // Intentos de endpoint: Directo primero, luego Proxy si falla por CORS local
+            const endpoints = [
+                RAW_CSV_URL + '&_t=' + new Date().getTime(),
+                "https://api.allorigins.win/raw?url=" + encodeURIComponent(RAW_CSV_URL)
+            ];
+
+            let csvText = null;
+
+            for (let url of endpoints) {
+                try {
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        csvText = await response.text();
+                        if (csvText && csvText.includes('Propina')) break;
+                    }
+                } catch (e) {
+                    console.warn("Intento fallido en:", url);
+                }
+            }
+
+            if (csvText) {
+                const data = parseCSV(csvText);
+                renderDashboard(data);
+
+                icon.classList.remove('fa-spin');
+                badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800";
+                badge.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-emerald-500 rounded-full animate-pulse"></span>En Vivo`;
+
+                const now = new Date();
+                timeSpan.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                alertBox.classList.remove('hidden');
+            } else {
+                // Si falla completamente la conexión, mostramos mensaje de alerta y no inventamos datos
+                icon.classList.remove('fa-spin');
+                badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-800";
+                badge.innerHTML = `Error de Conexión`;
+                errorAlert.classList.remove('hidden');
+                alertBox.classList.add('hidden');
+            }
+        }
+
+        function renderDashboard(data) {
+            const diasValidos = data.propinasDiarias.filter(m => m > 0);
+            const sumaPropinas = diasValidos.reduce((a, b) => a + b, 0);
+            const promedio = diasValidos.length > 0 ? (sumaPropinas / diasValidos.length) : 0;
+            
+            let maxMonto = 0;
+            let maxIndex = -1;
+            data.propinasDiarias.forEach((m, i) => {
+                if (m > maxMonto) {
+                    maxMonto = m;
+                    maxIndex = i;
+                }
+            });
+
+            document.getElementById('kpiTotal').innerText = formatCLP(data.totalMes || sumaPropinas);
+            document.getElementById('kpiPromedio').innerText = formatCLP(promedio);
+            document.getElementById('kpiDiasSub').innerText = `En ${diasValidos.length} días registrados`;
+            document.getElementById('kpiMaximo').innerText = formatCLP(maxMonto);
+            document.getElementById('kpiMaxFecha').innerText = maxIndex !== -1 ? `Registrado el ${data.dias[maxIndex]}` : 'Sin datos';
+            document.getElementById('kpiPersonal').innerText = data.colaboradores.length;
+
+            const tableBody = document.getElementById('staffTableBody');
+            tableBody.innerHTML = '';
+            
+            if (data.colaboradores.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-slate-400">No se encontraron registros de colaboradores en la hoja "Resumen".</td></tr>';
+            } else {
+                data.colaboradores.forEach(colab => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-6 py-4"><span class="px-2.5 py-1 ${colab.color} rounded-md font-medium text-xs">${colab.area}</span></td>
+                        <td class="px-6 py-4 font-medium text-slate-800">${colab.nombre}</td>
+                        <td class="px-6 py-4 text-right font-bold text-slate-900">${formatCLP(colab.monto)}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            renderCharts(data);
+        }
+
+        function renderCharts(data) {
+            if (dailyChartInstance) dailyChartInstance.destroy();
+            if (staffChartInstance) staffChartInstance.destroy();
+
+            const ctxDaily = document.getElementById('dailyChart').getContext('2d');
+            dailyChartInstance = new Chart(ctxDaily, {
+                type: 'line',
+                data: {
+                    labels: data.dias,
+                    datasets: [{
+                        label: 'Propina Diaria ($)',
+                        data: data.propinasDiarias,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            const ctxStaff = document.getElementById('staffChart').getContext('2d');
+            staffChartInstance = new Chart(ctxStaff, {
+                type: 'doughnut',
+                data: {
+                    labels: data.colaboradores.map(c => c.nombre),
+                    datasets: [{
+                        data: data.colaboradores.map(c => c.monto),
+                        backgroundColor: ['#f59e0b', '#d97706', '#3b82f6', '#b45309', '#a855f7', '#8b5cf6', '#60a5fa', '#93c5fd', '#10b981', '#34d399', '#f43f5e']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+    </script>
+</body>
+</html>
