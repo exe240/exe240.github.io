@@ -164,49 +164,55 @@
         }
 
         function processCsvData(csvText) {
-            let totalMes = 0, dias = [], propinasDiarias = [], colaboradores = [];
+            let totalMes = 0;
+            let dias = [];
+            let propinasDiarias = [];
+            let colaboradores = [];
             let currentArea = 'Garzones';
-            const reserved = ['Garzones', 'Barra', 'Cocina', 'Part-Time', 'Total', 'Propina Total Mes', 'Total Propina', 'Resumen', 'Propina Diaria', 'Asistencia'];
+            const reserved = ['Total', 'Propina Total Mes', 'Total Propina', 'Resumen', 'Propina Diaria', 'Asistencia', ''];
 
-            const rows = csvText.split('\n');
+            const lines = csvText.split('\n');
 
-            rows.forEach(line => {
+            lines.forEach(function(line) {
                 const cols = line.split(',').map(function(c) {
                     return c.trim().replace(/^"|"$/g, '');
                 });
-                if (cols.length === 0) return;
+                if (cols.length < 2) return;
 
-                cols.forEach(function(col, i) {
-                    if(col.toLowerCase().includes('propina total mes')) {
-                        totalMes = cleanNumber(cols[i+1] || cols[i+2]);
+                // 1. Buscar Propina Total Mes (Columna F y G)
+                for(let i = 0; i < cols.length; i++) {
+                    if (cols[i].toLowerCase().includes('propina total mes')) {
+                        let val = cleanNumber(cols[i+1]);
+                        if (val > 0) totalMes = val;
                     }
-                });
-
-                const firstCol = cols[0] || '';
-                if(/^\d{1,2}-[A-Za-z]{3}$/i.test(firstCol) || /^\d{1,2}\/[0-9]{1,2}$/.test(firstCol)) {
-                    dias.push(firstCol);
-                    propinasDiarias.push(cleanNumber(cols[1]));
                 }
 
-                cols.forEach(function(col) { 
-                    if(['Garzones', 'Barra', 'Cocina', 'Part-Time'].includes(col)) {
-                        currentArea = col;
-                    }
-                });
+                // 2. Extraer Fecha (Columna B) y Propina Diaria (Columna C)
+                const fechaCol = cols[1];
+                const propDiariaCol = cleanNumber(cols[2]);
+                if (fechaCol && /^\d{1,2}-[a-zA-Z]{3}$/i.test(fechaCol)) {
+                    dias.push(fechaCol);
+                    propinasDiarias.push(propDiariaCol);
+                }
 
-                for(let i = 0; i < cols.length - 1; i++) {
-                    const name = cols[i];
-                    const val = cleanNumber(cols[i+1]);
+                // 3. Detectar Área (Columna E)
+                const areaCol = cols[4];
+                if (['Garzones', 'Barra', 'Cocina', 'Part-Time'].includes(areaCol)) {
+                    currentArea = areaCol;
+                }
 
-                    if(name && name.length > 2 && !reserved.includes(name) && !/^\d+$/.test(name) && val > 1000) {
-                        let color = 'bg-blue-50 text-blue-700';
-                        if(currentArea === 'Barra') color = 'bg-purple-50 text-purple-700';
-                        if(currentArea === 'Cocina') color = 'bg-amber-50 text-amber-700';
-                        if(currentArea === 'Part-Time') color = 'bg-emerald-50 text-emerald-700';
+                // 4. Extraer Colaborador (Columna F) y Monto (Columna G)
+                const nombreCol = cols[5];
+                const montoCol = cleanNumber(cols[6]);
 
-                        if(!colaboradores.some(function(c) { return c.nombre === name; })) {
-                            colaboradores.push({ nombre: name, area: currentArea, monto: val, color: color });
-                        }
+                if (nombreCol && nombreCol.length > 1 && !reserved.includes(nombreCol) && !/^\d+$/.test(nombreCol) && montoCol > 0) {
+                    let color = 'bg-blue-50 text-blue-700';
+                    if(currentArea === 'Barra') color = 'bg-purple-50 text-purple-700';
+                    if(currentArea === 'Cocina') color = 'bg-amber-50 text-amber-700';
+                    if(currentArea === 'Part-Time') color = 'bg-emerald-50 text-emerald-700';
+
+                    if(!colaboradores.some(function(c) { return c.nombre === nombreCol; })) {
+                        colaboradores.push({ nombre: nombreCol, area: currentArea, monto: montoCol, color: color });
                     }
                 }
             });
