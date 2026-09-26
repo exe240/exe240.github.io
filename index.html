@@ -15,7 +15,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen" onload="fetchLiveData()">
 
-    <!-- Panel Dashboard (Visible directamente) -->
+    <!-- Panel Dashboard -->
     <div id="dashboardContent" class="min-h-screen pb-12">
         <nav class="bg-white border-b border-slate-200 sticky top-0 z-30">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -26,7 +26,7 @@
                         </div>
                         <div>
                             <h1 class="text-lg font-bold text-slate-900 leading-tight">Control Oficial de Propinas</h1>
-                            <p class="text-xs text-slate-500">Google Sheets (Conexión Directa API)</p>
+                            <p class="text-xs text-slate-500">Google Sheets (CSV Directo)</p>
                         </div>
                     </div>
                     
@@ -117,8 +117,7 @@
     </div>
 
     <script>
-        // URL de consulta a Google Visualization API
-        const GVIZ_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVCGI2Q3WgpJi9rz-FXyQ7ugPGiqY_Nc4e0fBFb8pV1lYtoGrmt1Zlaf6AHpMFBg/gviz/tq?gid=1672948599&tqx=out:json";
+        const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVCGI2Q3WgpJi9rz-FXyQ7ugPGiqY_Nc4e0fBFb8pV1lYtoGrmt1Zlaf6AHpMFBg/pub?gid=1672948599&single=true&output=csv";
 
         let dailyChartInstance = null;
         let staffChartInstance = null;
@@ -141,14 +140,11 @@
             errorAlert.classList.add('hidden');
 
             try {
-                const response = await fetch(GVIZ_URL + "&_t=" + Date.now());
-                const rawText = await response.text();
+                const response = await fetch(CSV_URL + "&_t=" + Date.now());
+                if (!response.ok) throw new Error("No se pudo obtener el archivo CSV");
                 
-                const jsonText = rawText.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/);
-                if (!jsonText || !jsonText[1]) throw new Error("Respuesta inválida de Google Sheets");
-
-                const dataObj = JSON.parse(jsonText[1]);
-                const parsedData = processGvizData(dataObj.table);
+                const csvText = await response.text();
+                const parsedData = processCsvData(csvText);
 
                 renderDashboard(parsedData);
 
@@ -167,38 +163,37 @@
             }
         }
 
-        function processGvizData(table) {
+        function processCsvData(csvText) {
             let totalMes = 0, dias = [], propinasDiarias = [], colaboradores = [];
             let currentArea = 'Garzones';
             const reserved = ['Garzones', 'Barra', 'Cocina', 'Part-Time', 'Total', 'Propina Total Mes', 'Total Propina', 'Resumen', 'Propina Diaria', 'Asistencia'];
 
-            if (!table || !table.rows) return { totalMes, dias, propinasDiarias, colaboradores };
+            const rows = csvText.split('\n');
 
-            table.rows.forEach(r => {
-                if (!r.c) return;
-                const rowCells = r.c.map(cell => cell ? (cell.f || cell.v || '') : '');
+            rows.forEach(line => {
+                // Limpiar comillas y dividir por comas respetando celdas básicas
+                const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                if (cols.length === 0) return;
 
-                rowCells.forEach((cell, i) => {
-                    const strCell = cell.toString();
-                    if(strCell.toLowerCase().includes('propina total mes')) {
-                        totalMes = cleanNumber(rowCells[i+1] || rowCells[i+2]);
+                cols.forEach((col, i) => {
+                    if(col.toLowerCase().includes('propina total mes')) {
+                        totalMes = cleanNumber(cols[i+1] || cols[i+2]);
                     }
                 });
 
-                const firstCol = rowCells[0] ? rowCells[0].toString().trim() : '';
+                const firstCol = cols[0] || '';
                 if(/^\d{1,2}-[A-Za-z]{3}$/i.test(firstCol) \vert{}\vert{} /^\d{1,2}\/[0-9]{1,2}$/.test(firstCol)) {
                     dias.push(firstCol);
-                    propinasDiarias.push(cleanNumber(rowCells[1]));
+                    propinasDiarias.push(cleanNumber(cols[1]));
                 }
 
-                rowCells.forEach(cell => { 
-                    const strCell = cell.toString().trim();
-                    if(['Garzones', 'Barra', 'Cocina', 'Part-Time'].includes(strCell)) currentArea = strCell; 
+                cols.forEach(col => { 
+                    if(['Garzones', 'Barra', 'Cocina', 'Part-Time'].includes(col)) currentArea = col; 
                 });
 
-                for(let i=0; i < rowCells.length - 1; i++) {
-                    const name = rowCells[i] ? rowCells[i].toString().trim() : '';
-                    const val = cleanNumber(rowCells[i+1]);
+                for(let i=0; i < cols.length - 1; i++) {
+                    const name = cols[i];
+                    const val = cleanNumber(cols[i+1]);
 
                     if(name && name.length > 2 && !reserved.includes(name) && !/^\d+$/.test(name) && val > 1000) {
                         let color = 'bg-blue-50 text-blue-700';
