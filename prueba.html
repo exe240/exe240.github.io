@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte Mensual de Propinas</title>
+    <title>Control Oficial de Propinas</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js -->
@@ -15,59 +15,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style> body { font-family: 'Inter', sans-serif; } </style>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen" onload="fetchLiveData()">
+<body class="bg-slate-100 text-slate-800 min-h-screen">
 
-    <!-- Agrega esto al inicio de tu <body> -->
-<div id="authOverlay" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full space-y-4">
-        <div class="text-center space-y-1">
-            <div class="inline-block p-3 bg-emerald-100 text-emerald-600 rounded-xl mb-2">
-                <i class="fa-solid fa-lock text-xl"></i>
+    <!-- Pantalla de Autenticación (Bloqueo) -->
+    <div id="authOverlay" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full space-y-4">
+            <div class="text-center space-y-1">
+                <div class="inline-block p-3 bg-emerald-100 text-emerald-600 rounded-xl mb-2">
+                    <i class="fa-solid fa-lock text-xl"></i>
+                </div>
+                <h2 class="text-lg font-bold text-slate-900">Acceso Restringido</h2>
+                <p class="text-xs text-slate-500">Ingresa la contraseña para ver el control de propinas.</p>
             </div>
-            <h2 class="text-lg font-bold text-slate-900">Acceso Restringido</h2>
-            <p class="text-xs text-slate-500">Ingresa la contraseña para ver el control de propinas.</p>
+            <div>
+                <input type="password" id="passInput" placeholder="Contraseña" onkeypress="handleKeypress(event)" class="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <p id="errorPass" class="text-xs text-rose-600 mt-1.5 hidden">Contraseña incorrecta.</p>
+            </div>
+            <button onclick="checkPassword()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-all">
+                Ingresar
+            </button>
         </div>
-        <div>
-            <input type="password" id="passInput" placeholder="Contraseña" class="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            <p id="errorPass" class="text-xs text-rose-600 mt-1.5 hidden">Contraseña incorrecta.</p>
-        </div>
-        <button onclick="checkPassword()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-all">
-            Ingresar
-        </button>
     </div>
-</div>
-
-<script>
-    const CORRECT_HASH = "2398cad5b795431ab7f0b3319864ee2c41000afe2f00b61064e3f89f6e03d802";
-
-    async function sha256(message) {
-        const msgBuffer = new TextEncoder().encode(message);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    async function checkPassword() {
-        const input = document.getElementById('passInput').value;
-        const hashedInput = await sha256(input);
-        
-        if (hashedInput === CORRECT_HASH) {
-            document.getElementById('authOverlay').style.display = 'none';
-            sessionStorage.setItem('authenticated', 'true');
-            fetchLiveData(); // Carga los datos solo si pasa
-        } else {
-            document.getElementById('errorPass').classList.remove('hidden');
-        }
-    }
-
-    // Opcional: Mantener sesión abierta mientras la pestaña esté activa
-    window.onload = function() {
-        if (sessionStorage.getItem('authenticated') === 'true') {
-            document.getElementById('authOverlay').style.display = 'none';
-            fetchLiveData();
-        }
-    }
-</script>
 
     <!-- Panel Dashboard -->
     <div id="dashboardContent" class="min-h-screen pb-12">
@@ -79,8 +47,8 @@
                             <i class="fa-solid fa-hand-holding-dollar text-xl"></i>
                         </div>
                         <div>
-                            <h1 class="text-lg font-bold text-slate-900 leading-tight">Reporte Mensual de Propinas</h1>
-                            <p class="text-xs text-slate-500">Canelé</p>
+                            <h1 class="text-lg font-bold text-slate-900 leading-tight">Control Oficial de Propinas</h1>
+                            <p class="text-xs text-slate-500">Google Sheets (CSV Directo)</p>
                         </div>
                     </div>
                     
@@ -90,9 +58,14 @@
                             Conectando...
                         </span>
 
-                        <button onclick="fetchLiveData()" class="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg transition-all border border-slate-200">
+                        <button onclick="fetchLiveData()" title="Sincronizar datos" class="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg transition-all border border-slate-200">
                             <i id="syncIcon" class="fa-solid fa-rotate"></i>
-                            <span>Sincronizar</span>
+                            <span class="hidden sm:inline">Sincronizar</span>
+                        </button>
+
+                        <button onclick="logout()" title="Cerrar sesión" class="flex items-center space-x-2 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium text-xs rounded-lg transition-all border border-rose-200">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            <span class="hidden sm:inline">Salir</span>
                         </button>
                     </div>
                 </div>
@@ -172,9 +145,56 @@
 
     <script>
         const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVCGI2Q3WgpJi9rz-FXyQ7ugPGiqY_Nc4e0fBFb8pV1lYtoGrmt1Zlaf6AHpMFBg/pub?gid=1672948599&single=true&output=csv";
+        
+        // Hash SHA-256 de la contraseña (por defecto configurado como "admin").
+        // Puedes cambiar el hash generado de tu propia clave cuando gustes.
+        const CORRECT_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
 
         let dailyChartInstance = null;
         let staffChartInstance = null;
+
+        // Validar sesión al cargar la página
+        window.onload = function() {
+            if (sessionStorage.getItem('authenticated') === 'true') {
+                document.getElementById('authOverlay').style.display = 'none';
+                fetchLiveData();
+            }
+        };
+
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function checkPassword() {
+            const input = document.getElementById('passInput').value;
+            const hashedInput = await sha256(input);
+            
+            if (hashedInput === CORRECT_HASH) {
+                document.getElementById('authOverlay').style.display = 'none';
+                sessionStorage.setItem('authenticated', 'true');
+                document.getElementById('errorPass').classList.add('hidden');
+                document.getElementById('passInput').value = '';
+                fetchLiveData();
+            } else {
+                document.getElementById('errorPass').classList.remove('hidden');
+            }
+        }
+
+        function handleKeypress(event) {
+            if (event.key === 'Enter') {
+                checkPassword();
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('authenticated');
+            document.getElementById('authOverlay').style.display = 'flex';
+            document.getElementById('passInput').value = '';
+            document.getElementById('errorPass').classList.add('hidden');
+        }
 
         function formatCLP(val) { return '$' + Math.round(val).toLocaleString('es-CL'); }
         function cleanNumber(val) { 
@@ -245,7 +265,6 @@
                 cols.push(currentVal.trim().replace(/^"|"$/g, ''));
                 if (cols.length < 2) return;
 
-                // 1. Buscar Propina Total Mes
                 cols.forEach(function(cell, idx) {
                     if (cell.toLowerCase().includes('propina total mes')) {
                         let val = cleanNumber(cols[idx + 1]);
@@ -253,7 +272,6 @@
                     }
                 });
 
-                // 2. Extraer Fecha (Columna B) y Propina Diaria (Columna C)
                 let fechaCol = cols[1];
                 let propDiariaCol = cleanNumber(cols[2]);
                 if (fechaCol && /^\d{1,2}-[a-zA-Z]{3}$/i.test(fechaCol)) {
@@ -261,13 +279,11 @@
                     propinasDiarias.push(propDiariaCol);
                 }
 
-                // 3. Detectar Área (Columna E / índice 4)
                 let areaCol = cols[4];
                 if (areaCol && areaCol.length > 0 && !areaCol.toLowerCase().includes('nan')) {
                     currentArea = areaCol;
                 }
 
-                // 4. Extraer Colaborador (Columna F / índice 5) y Monto (Columna G / índice 6)
                 let nombreCol = cols[5];
                 let montoCol = cleanNumber(cols[6]);
 
@@ -367,7 +383,6 @@
                                 }
                             }
                         },
-                        // Plugin de DataLabels para mostrar el porcentaje permanentemente en el gráfico
                         datalabels: {
                             color: '#ffffff',
                             font: {
@@ -378,7 +393,6 @@
                                 let total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
                                 if (total === 0) return '';
                                 let percentage = (value / total) * 100;
-                                // Ocultar porcentajes muy pequeños (< 3%) para evitar que se encimen los textos
                                 if (percentage < 3) return ''; 
                                 return percentage.toFixed(0) + '%';
                             }
