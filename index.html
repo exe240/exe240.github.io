@@ -28,10 +28,10 @@
                 <p class="text-slate-500 text-sm mt-1">Ingresa la clave para ver la rendición en vivo</p>
             </div>
             
-            <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
+            <form id="authForm" action="javascript:void(0);" onsubmit="handleAuth(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Clave de Acceso</label>
-                    <input type="password" id="pinInput" placeholder="Ej: 1234" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-center text-lg font-bold tracking-widest">
+                    <input type="password" id="pinInput" placeholder="Ej: 1234" autocomplete="current-password" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-center text-lg font-bold tracking-widest">
                 </div>
                 <p id="authError" class="text-rose-500 text-xs text-center hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i> Clave incorrecta. Intenta nuevamente.</p>
                 <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-600/30">
@@ -201,8 +201,11 @@
             return parseFloat(cleaned) || 0;
         }
 
-        function handleAuth(e) {
-            e.preventDefault();
+        function handleAuth(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
             const pin = document.getElementById('pinInput').value;
             if(pin === '1234') {
                 document.getElementById('authModal').classList.add('hidden');
@@ -211,6 +214,7 @@
             } else {
                 document.getElementById('authError').classList.remove('hidden');
             }
+            return false;
         }
 
         function logout() {
@@ -247,7 +251,6 @@
             const ignoredNames = ['Garzones', 'Barra', 'Cocina', 'Part-Time', 'Part-time', 'Total', 'Propina Total Mes', 'Total Propina', 'Resumen', 'Propina Diaria', 'Asistencia'];
 
             matrix.forEach(row => {
-                // 1. Buscar Total Mes
                 row.forEach((cell, idx) => {
                     if (cell.toLowerCase().includes('propina total mes')) {
                         for (let j = idx + 1; j < row.length; j++) {
@@ -260,7 +263,6 @@
                     }
                 });
 
-                // 2. Extraer fechas y propinas diarias
                 const col0 = row[0] || '';
                 const col1 = row[1] || '';
                 if (/^\d{1,2}-[A-Za-z]{3}$/i.test(col0) \vert{}\vert{} /^\d{1,2}\/[0-9]{1,2}$/.test(col0)) {
@@ -269,14 +271,12 @@
                     propinasDiarias.push(montoDia);
                 }
 
-                // 3. Detectar cambios de Área
                 row.forEach(cell => {
                     if (['Garzones', 'Barra', 'Cocina', 'Part-Time'].includes(cell)) {
                         currentArea = cell;
                     }
                 });
 
-                // 4. Extraer Colaboradores
                 for (let i = 0; i < row.length - 1; i++) {
                     const possibleName = row[i];
                     const possibleValue = row[i + 1];
@@ -289,7 +289,6 @@
                             if (currentArea === 'Cocina') colorClass = 'bg-amber-50 text-amber-700';
                             if (currentArea === 'Part-Time') colorClass = 'bg-emerald-50 text-emerald-700';
 
-                            // Evitar duplicados
                             if (!colaboradores.some(c => c.nombre === possibleName)) {
                                 colaboradores.push({
                                     nombre: possibleName,
@@ -319,7 +318,6 @@
             errorAlert.classList.add('hidden');
 
             try {
-                // Petición directa libre de caché
                 const response = await fetch(CSV_URL + '&_t=' + new Date().getTime());
                 
                 if (!response.ok) throw new Error("Respuesta de red no válida");
