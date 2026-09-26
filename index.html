@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Propinas Septiembre</title>
+    <title>Dashboard Propinas - En Vivo</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js -->
@@ -53,7 +53,7 @@
                         </div>
                         <div>
                             <h1 class="text-lg font-bold text-slate-900 leading-tight">Control de Propinas</h1>
-                            <p class="text-xs text-slate-500">Pestaña Resumen - Septiembre</p>
+                            <p class="text-xs text-slate-500">Sincronizado con Google Sheets (Resumen)</p>
                         </div>
                     </div>
                     
@@ -66,7 +66,7 @@
                         </span>
 
                         <!-- Botón de Sincronización Manual -->
-                        <button id="syncBtn" onclick="syncData()" class="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg transition-all border border-slate-200">
+                        <button id="syncBtn" onclick="fetchLiveData()" class="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg transition-all border border-slate-200">
                             <i id="syncIcon" class="fa-solid fa-rotate"></i>
                             <span>Sincronizar</span>
                         </button>
@@ -87,7 +87,7 @@
             
             <!-- Banner Alerta Sincronización -->
             <div id="syncAlert" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-2.5 rounded-xl flex justify-between items-center transition-all">
-                <span><i class="fa-solid fa-circle-check mr-2 text-emerald-600"></i>Sincronización de montos y colaboradores completada con éxito. Última actualización: <strong id="lastSyncTime">Ahora</strong></span>
+                <span><i class="fa-solid fa-circle-check mr-2 text-emerald-600"></i>Sincronización en tiempo real completada. Última consulta a Drive: <strong id="lastSyncTime">Ahora</strong></span>
                 <button onclick="document.getElementById('syncAlert').classList.add('hidden')" class="text-emerald-600 hover:text-emerald-900 font-bold">&times;</button>
             </div>
 
@@ -99,8 +99,8 @@
                         <span class="p-2 bg-emerald-50 text-emerald-600 rounded-lg text-sm"><i class="fa-solid fa-wallet"></i></span>
                     </div>
                     <div class="mt-4">
-                        <h3 id="kpiTotal" class="text-3xl font-extrabold text-slate-900">$1.426.990</h3>
-                        <p class="text-xs text-slate-500 mt-1">Consolidado Septiembre</p>
+                        <h3 id="kpiTotal" class="text-3xl font-extrabold text-slate-900">$0</h3>
+                        <p class="text-xs text-slate-500 mt-1">Consolidado desde Google Sheets</p>
                     </div>
                 </div>
 
@@ -110,8 +110,8 @@
                         <span class="p-2 bg-blue-50 text-blue-600 rounded-lg text-sm"><i class="fa-solid fa-chart-line"></i></span>
                     </div>
                     <div class="mt-4">
-                        <h3 id="kpiPromedio" class="text-3xl font-extrabold text-slate-900">$64.863</h3>
-                        <p class="text-xs text-slate-500 mt-1">En 22 días de registro</p>
+                        <h3 id="kpiPromedio" class="text-3xl font-extrabold text-slate-900">$0</h3>
+                        <p id="kpiDiasSub" class="text-xs text-slate-500 mt-1">Calculando días...</p>
                     </div>
                 </div>
 
@@ -121,8 +121,8 @@
                         <span class="p-2 bg-purple-50 text-purple-600 rounded-lg text-sm"><i class="fa-solid fa-arrow-trend-up"></i></span>
                     </div>
                     <div class="mt-4">
-                        <h3 id="kpiMaximo" class="text-3xl font-extrabold text-slate-900">$136.910</h3>
-                        <p class="text-xs text-slate-500 mt-1">Registrado el 13-Sep</p>
+                        <h3 id="kpiMaximo" class="text-3xl font-extrabold text-slate-900">$0</h3>
+                        <p id="kpiMaxFecha" class="text-xs text-slate-500 mt-1">Sin registros</p>
                     </div>
                 </div>
 
@@ -132,8 +132,8 @@
                         <span class="p-2 bg-amber-50 text-amber-600 rounded-lg text-sm"><i class="fa-solid fa-users"></i></span>
                     </div>
                     <div class="mt-4">
-                        <h3 id="kpiPersonal" class="text-3xl font-extrabold text-slate-900">10</h3>
-                        <p class="text-xs text-slate-500 mt-1">Colaboradores activos</p>
+                        <h3 id="kpiPersonal" class="text-3xl font-extrabold text-slate-900">0</h3>
+                        <p class="text-xs text-slate-500 mt-1">Colaboradores detectados</p>
                     </div>
                 </div>
             </div>
@@ -142,7 +142,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Tendencia Diaria -->
                 <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-                    <h3 class="text-base font-bold text-slate-900 mb-4"><i class="fa-solid fa-calendar-days text-emerald-600 mr-2"></i>Propina Diaria (Septiembre)</h3>
+                    <h3 class="text-base font-bold text-slate-900 mb-4"><i class="fa-solid fa-calendar-days text-emerald-600 mr-2"></i>Propina Diaria</h3>
                     <div class="h-72">
                         <canvas id="dailyChart"></canvas>
                     </div>
@@ -161,7 +161,7 @@
             <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="text-base font-bold text-slate-900">Detalle de Totales por Colaborador</h3>
-                    <span class="text-xs text-slate-400">Actualizado dinámicamente</span>
+                    <span class="text-xs text-emerald-600 font-semibold"><i class="fa-solid fa-arrows-rotate mr-1"></i>Sincronizado vía CSV</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-sm">
@@ -173,7 +173,7 @@
                             </tr>
                         </thead>
                         <tbody id="staffTableBody" class="divide-y divide-slate-100 text-slate-700">
-                            <!-- Filas generadas dinámicamente por JavaScript -->
+                            <!-- Filas dinámicas -->
                         </tbody>
                     </table>
                 </div>
@@ -183,32 +183,19 @@
     </div>
 
     <script>
-        // Estructura de datos dinámica desde la planilla
-        let database = {
-            totalMes: 1426990,
-            promedioDiario: 64863,
-            maximoDiario: 136910,
-            dias: ['1-Sep', '2-Sep', '3-Sep', '4-Sep', '5-Sep', '6-Sep', '7-Sep', '8-Sep', '9-Sep', '10-Sep', '11-Sep', '12-Sep', '13-Sep', '14-Sep', '15-Sep', '16-Sep', '17-Sep', '18-Sep', '19-Sep', '20-Sep', '21-Sep', '22-Sep', '23-Sep'],
-            propinasDiarias: [33470, 68350, 79030, 48860, 110110, 104630, 52641, 26823, 56125, 69449, 79799, 94640, 136910, 33300, 40150, 38210, 42890, 0, 4700, 121118, 48216, 53930, 83639],
-            colaboradores: [
-                { nombre: "Scarlett Reyes", area: "Garzones", monto: 170049, color: "bg-blue-50 text-blue-700" },
-                { nombre: "Javiera Navarrete", area: "Garzones", monto: 152350, color: "bg-blue-50 text-blue-700" },
-                { nombre: "Yaritza Abarca", area: "Garzones", monto: 135634, color: "bg-blue-50 text-blue-700" },
-                { nombre: "Nicole Ibarra", area: "Barra", monto: 154127, color: "bg-purple-50 text-purple-700" },
-                { nombre: "Laura Leiva", area: "Barra", monto: 164047, color: "bg-purple-50 text-purple-700" },
-                { nombre: "Rosario", area: "Cocina", monto: 167916, color: "bg-amber-50 text-amber-700" },
-                { nombre: "Sarai", area: "Cocina", monto: 175657, color: "bg-amber-50 text-amber-700" },
-                { nombre: "Rodrigo Carballo", area: "Cocina", monto: 189068, color: "bg-amber-50 text-amber-700" },
-                { nombre: "Krishna Calderón", area: "Part-Time", monto: 54687, color: "bg-emerald-50 text-emerald-700" },
-                { nombre: "daniela", area: "Part-Time", monto: 63455, color: "bg-emerald-50 text-emerald-700" }
-            ]
-        };
+        const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVCGI2Q3WgpJi9rz-FXyQ7ugPGiqY_Nc4e0fBFb8pV1lYtoGrmt1Zlaf6AHpMFBg/pub?gid=1672948599&single=true&output=csv";
 
         let dailyChartInstance = null;
         let staffChartInstance = null;
 
         function formatCLP(val) {
-            return '$' + val.toLocaleString('es-CL');
+            return '$' + Math.round(val).toLocaleString('es-CL');
+        }
+
+        function cleanNumber(str) {
+            if (!str) return 0;
+            const cleaned = str.replace(/[^0-9,-]/g, '').replace(',', '.');
+            return parseFloat(cleaned) || 0;
         }
 
         function handleAuth(e) {
@@ -217,7 +204,7 @@
             if(pin === '1234') {
                 document.getElementById('authModal').classList.add('hidden');
                 document.getElementById('dashboardContent').classList.remove('hidden');
-                renderDashboard();
+                fetchLiveData();
             } else {
                 document.getElementById('authError').classList.remove('hidden');
             }
@@ -229,44 +216,138 @@
             document.getElementById('pinInput').value = '';
         }
 
-        function syncData() {
+        function parseCSV(text) {
+            const lines = text.split('\n').map(l => {
+                const row = [];
+                let inQuotes = false;
+                let current = '';
+                for (let char of l) {
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) {
+                        row.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                row.push(current.trim());
+                return row;
+            });
+
+            let totalMes = 0;
+            let dias = [];
+            let propinasDiarias = [];
+            let colaboradores = [];
+            let currentArea = 'Garzones';
+
+            lines.forEach((row, idx) => {
+                const col0 = row[0] || '';
+                const col1 = row[1] || '';
+                const col2 = row[2] || '';
+                const col3 = row[3] || '';
+                const col4 = row[4] || '';
+                const col5 = row[5] || '';
+
+                // Detectar Propina Total Mes
+                if (col4.includes('Propina Total Mes')) {
+                    totalMes = cleanNumber(col5);
+                }
+
+                // Detectar Días y Propina Diaria
+                if (/^\d{1,2}-[A-Za-z]{3}$/.test(col0)) {
+                    const monto = cleanNumber(col1);
+                    dias.push(col0);
+                    propinasDiarias.push(monto);
+                }
+
+                // Detectar cambio de área
+                if (['Garzones', 'Barra', 'Cocina', 'Part-Time'].includes(col2)) {
+                    currentArea = col2;
+                }
+
+                // Detectar Colaboradores
+                if (col3 && !['Garzones', 'Barra', 'Cocina', 'Part-Time', 'Total', 'Propina Total Mes', 'Total Propina'].includes(col3) && col4) {
+                    const montoColab = cleanNumber(col4);
+                    if (montoColab > 0) {
+                        let colorClass = 'bg-blue-50 text-blue-700';
+                        if (currentArea === 'Barra') colorClass = 'bg-purple-50 text-purple-700';
+                        if (currentArea === 'Cocina') colorClass = 'bg-amber-50 text-amber-700';
+                        if (currentArea === 'Part-Time') colorClass = 'bg-emerald-50 text-emerald-700';
+
+                        colaboradores.push({
+                            nombre: col3,
+                            area: currentArea,
+                            monto: montoColab,
+                            color: colorClass
+                        });
+                    }
+                }
+            });
+
+            return { totalMes, dias, propinasDiarias, colaboradores };
+        }
+
+        async function fetchLiveData() {
             const icon = document.getElementById('syncIcon');
             const badge = document.getElementById('syncBadge');
             const alertBox = document.getElementById('syncAlert');
             const timeSpan = document.getElementById('lastSyncTime');
 
-            // Feedback visual
             icon.classList.add('fa-spin');
             badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800";
             badge.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-amber-500 rounded-full animate-ping"></span>Sincronizando...`;
 
-            setTimeout(() => {
+            try {
+                // Prevenir caché con timestamp
+                const response = await fetch(CSV_URL + '&_t=' + new Date().getTime());
+                const csvText = await response.text();
+                const data = parseCSV(csvText);
+
+                renderDashboard(data);
+
                 icon.classList.remove('fa-spin');
                 badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800";
                 badge.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-emerald-500 rounded-full animate-pulse"></span>Sincronizado`;
 
-                // Actualiza la hora de sincronización y renderiza todo de nuevo
                 const now = new Date();
                 timeSpan.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                 alertBox.classList.remove('hidden');
 
-                // Renderizar datos actualizados
-                renderDashboard();
-            }, 1200);
+            } catch (error) {
+                console.error("Error al obtener datos:", error);
+                icon.classList.remove('fa-spin');
+                badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-800";
+                badge.innerHTML = `Error de conexión`;
+            }
         }
 
-        function renderDashboard() {
-            // 1. Actualizar KPIs
-            document.getElementById('kpiTotal').innerText = formatCLP(database.totalMes);
-            document.getElementById('kpiPromedio').innerText = formatCLP(database.promedioDiario);
-            document.getElementById('kpiMaximo').innerText = formatCLP(database.maximoDiario);
-            document.getElementById('kpiPersonal').innerText = database.colaboradores.length;
+        function renderDashboard(data) {
+            // Filtrar días con datos válidos
+            const diasValidos = data.propinasDiarias.filter(m => m > 0);
+            const sumaPropinas = diasValidos.reduce((a, b) => a + b, 0);
+            const promedio = diasValidos.length > 0 ? (sumaPropinas / diasValidos.length) : 0;
+            
+            let maxMonto = 0;
+            let maxIndex = -1;
+            data.propinasDiarias.forEach((m, i) => {
+                if (m > maxMonto) {
+                    maxMonto = m;
+                    maxIndex = i;
+                }
+            });
 
-            // 2. Renderizar Tabla Dinámica de Colaboradores
+            // Actualizar KPIs
+            document.getElementById('kpiTotal').innerText = formatCLP(data.totalMes || sumaPropinas);
+            document.getElementById('kpiPromedio').innerText = formatCLP(promedio);
+            document.getElementById('kpiDiasSub').innerText = `En ${diasValidos.length} días registrados`;
+            document.getElementById('kpiMaximo').innerText = formatCLP(maxMonto);
+            document.getElementById('kpiMaxFecha').innerText = maxIndex !== -1 ? `Registrado el ${data.dias[maxIndex]}` : 'Sin datos';
+            document.getElementById('kpiPersonal').innerText = data.colaboradores.length;
+
+            // Actualizar Tabla
             const tableBody = document.getElementById('staffTableBody');
             tableBody.innerHTML = '';
-
-            database.colaboradores.forEach(colab => {
+            data.colaboradores.forEach(colab => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="px-6 py-4"><span class="px-2.5 py-1 ${colab.color} rounded-md font-medium text-xs">${colab.area}</span></td>
@@ -276,23 +357,23 @@
                 tableBody.appendChild(tr);
             });
 
-            // 3. Renderizar Gráficos
-            renderCharts();
+            // Actualizar Gráficos
+            renderCharts(data);
         }
 
-        function renderCharts() {
-            if(dailyChartInstance) dailyChartInstance.destroy();
-            if(staffChartInstance) staffChartInstance.destroy();
+        function renderCharts(data) {
+            if (dailyChartInstance) dailyChartInstance.destroy();
+            if (staffChartInstance) staffChartInstance.destroy();
 
             // Gráfico Propina Diaria
             const ctxDaily = document.getElementById('dailyChart').getContext('2d');
             dailyChartInstance = new Chart(ctxDaily, {
                 type: 'line',
                 data: {
-                    labels: database.dias,
+                    labels: data.dias,
                     datasets: [{
                         label: 'Propina Diaria ($)',
-                        data: database.propinasDiarias,
+                        data: data.propinasDiarias,
                         borderColor: '#10b981',
                         backgroundColor: 'rgba(16, 185, 129, 0.1)',
                         fill: true,
@@ -306,15 +387,15 @@
                 }
             });
 
-            // Gráfico Reparto Colaboradores (Dona)
+            // Gráfico Reparto Colaboradores
             const ctxStaff = document.getElementById('staffChart').getContext('2d');
             staffChartInstance = new Chart(ctxStaff, {
                 type: 'doughnut',
                 data: {
-                    labels: database.colaboradores.map(c => c.nombre),
+                    labels: data.colaboradores.map(c => c.nombre),
                     datasets: [{
-                        data: database.colaboradores.map(c => c.monto),
-                        backgroundColor: ['#f59e0b', '#d97706', '#3b82f6', '#b45309', '#a855f7', '#8b5cf6', '#60a5fa', '#93c5fd', '#10b981', '#34d399']
+                        data: data.colaboradores.map(c => c.monto),
+                        backgroundColor: ['#f59e0b', '#d97706', '#3b82f6', '#b45309', '#a855f7', '#8b5cf6', '#60a5fa', '#93c5fd', '#10b981', '#34d399', '#f43f5e']
                     }]
                 },
                 options: {
