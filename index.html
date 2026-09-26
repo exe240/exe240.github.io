@@ -171,27 +171,30 @@
             const rows = csvText.split('\n');
 
             rows.forEach(line => {
-                // Limpiar comillas y dividir por comas respetando celdas básicas
-                const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                const cols = line.split(',').map(function(c) {
+                    return c.trim().replace(/^"|"$/g, '');
+                });
                 if (cols.length === 0) return;
 
-                cols.forEach((col, i) => {
+                cols.forEach(function(col, i) {
                     if(col.toLowerCase().includes('propina total mes')) {
                         totalMes = cleanNumber(cols[i+1] || cols[i+2]);
                     }
                 });
 
                 const firstCol = cols[0] || '';
-                if(/^\d{1,2}-[A-Za-z]{3}$/i.test(firstCol) \vert{}\vert{} /^\d{1,2}\/[0-9]{1,2}$/.test(firstCol)) {
+                if(/^\d{1,2}-[A-Za-z]{3}$/i.test(firstCol) || /^\d{1,2}\/[0-9]{1,2}$/.test(firstCol)) {
                     dias.push(firstCol);
                     propinasDiarias.push(cleanNumber(cols[1]));
                 }
 
-                cols.forEach(col => { 
-                    if(['Garzones', 'Barra', 'Cocina', 'Part-Time'].includes(col)) currentArea = col; 
+                cols.forEach(function(col) { 
+                    if(['Garzones', 'Barra', 'Cocina', 'Part-Time'].includes(col)) {
+                        currentArea = col;
+                    }
                 });
 
-                for(let i=0; i < cols.length - 1; i++) {
+                for(let i = 0; i < cols.length - 1; i++) {
                     const name = cols[i];
                     const val = cleanNumber(cols[i+1]);
 
@@ -201,28 +204,31 @@
                         if(currentArea === 'Cocina') color = 'bg-amber-50 text-amber-700';
                         if(currentArea === 'Part-Time') color = 'bg-emerald-50 text-emerald-700';
 
-                        if(!colaboradores.some(c => c.nombre === name)) {
-                            colaboradores.push({ nombre: name, area: currentArea, monto: val, color });
+                        if(!colaboradores.some(function(c) { return c.nombre === name; })) {
+                            colaboradores.push({ nombre: name, area: currentArea, monto: val, color: color });
                         }
                     }
                 }
             });
 
-            return { totalMes, dias, propinasDiarias, colaboradores };
+            return { totalMes: totalMes, dias: dias, propinasDiarias: propinasDiarias, colaboradores: colaboradores };
         }
 
         function renderDashboard(data) {
-            const valids = data.propinasDiarias.filter(m => m > 0);
-            const sum = valids.reduce((a,b) => a+b, 0);
+            const valids = data.propinasDiarias.filter(function(m) { return m > 0; });
+            const sum = valids.reduce(function(a, b) { return a + b; }, 0);
             const avg = valids.length ? sum / valids.length : 0;
             let maxMonto = 0, maxIdx = -1;
-            data.propinasDiarias.forEach((m, i) => { if(m > maxMonto) { maxMonto = m; maxIdx = i; } });
+            
+            data.propinasDiarias.forEach(function(m, i) { 
+                if(m > maxMonto) { maxMonto = m; maxIdx = i; } 
+            });
 
             document.getElementById('kpiTotal').innerText = formatCLP(data.totalMes || sum);
             document.getElementById('kpiPromedio').innerText = formatCLP(avg);
-            document.getElementById('kpiDiasSub').innerText = `En ${valids.length} días registrados`;
+            document.getElementById('kpiDiasSub').innerText = 'En ' + valids.length + ' días registrados';
             document.getElementById('kpiMaximo').innerText = formatCLP(maxMonto);
-            document.getElementById('kpiMaxFecha').innerText = maxIdx !== -1 ? `El ${data.dias[maxIdx]}` : '--';
+            document.getElementById('kpiMaxFecha').innerText = maxIdx !== -1 ? 'El ' + data.dias[maxIdx] : '--';
             document.getElementById('kpiPersonal').innerText = data.colaboradores.length;
 
             const tbody = document.getElementById('staffTableBody');
@@ -230,12 +236,12 @@
             if (data.colaboradores.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-6 text-center text-slate-400">No se detectaron colaboradores con montos asignados.</td></tr>';
             } else {
-                data.colaboradores.forEach(c => {
-                    tbody.innerHTML += `<tr>
-                        <td class="px-6 py-4"><span class="px-2.5 py-1 ${c.color} rounded-md font-medium text-xs">${c.area}</span></td>
-                        <td class="px-6 py-4 font-medium text-slate-800">${c.nombre}</td>
-                        <td class="px-6 py-4 text-right font-bold text-slate-900">${formatCLP(c.monto)}</td>
-                    </tr>`;
+                data.colaboradores.forEach(function(c) {
+                    tbody.innerHTML += '<tr>' +
+                        '<td class="px-6 py-4"><span class="px-2.5 py-1 ' + c.color + ' rounded-md font-medium text-xs">' + c.area + '</span></td>' +
+                        '<td class="px-6 py-4 font-medium text-slate-800">' + c.nombre + '</td>' +
+                        '<td class="px-6 py-4 text-right font-bold text-slate-900">' + formatCLP(c.monto) + '</td>' +
+                    '</tr>';
                 });
             }
 
@@ -258,8 +264,8 @@
             staffChartInstance = new Chart(document.getElementById('staffChart'), {
                 type: 'doughnut',
                 data: {
-                    labels: data.colaboradores.map(c => c.nombre),
-                    datasets: [{ data: data.colaboradores.map(c => c.monto), backgroundColor: ['#f59e0b', '#d97706', '#3b82f6', '#b45309', '#a855f7', '#8b5cf6', '#60a5fa', '#93c5fd', '#10b981', '#34d399'] }]
+                    labels: data.colaboradores.map(function(c) { return c.nombre; }),
+                    datasets: [{ data: data.colaboradores.map(function(c) { return c.monto; }), backgroundColor: ['#f59e0b', '#d97706', '#3b82f6', '#b45309', '#a855f7', '#8b5cf6', '#60a5fa', '#93c5fd', '#10b981', '#34d399'] }]
                 },
                 options: { responsive: true, maintainAspectRatio: false }
             });
