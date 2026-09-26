@@ -168,54 +168,78 @@
             let dias = [];
             let propinasDiarias = [];
             let colaboradores = [];
-            let currentArea = 'Garzones';
+            let currentArea = 'General';
             const reserved = ['Total', 'Propina Total Mes', 'Total Propina', 'Resumen', 'Propina Diaria', 'Asistencia', ''];
 
             const lines = csvText.split('\n');
 
             lines.forEach(function(line) {
-                const cols = line.split(',').map(function(c) {
-                    return c.trim().replace(/^"|"$/g, '');
-                });
-                if (cols.length < 2) return;
-
-                // 1. Buscar Propina Total Mes (Columna F y G)
-                for(let i = 0; i < cols.length; i++) {
-                    if (cols[i].toLowerCase().includes('propina total mes')) {
-                        let val = cleanNumber(cols[i+1]);
-                        if (val > 0) totalMes = val;
+                // Dividir respetando comas
+                let cols = [];
+                let inQuotes = false;
+                let currentVal = '';
+                for (let i = 0; i < line.length; i++) {
+                    let char = line[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        cols.push(currentVal.trim().replace(/^"|"$/g, ''));
+                        currentVal = '';
+                    } else {
+                        currentVal += char;
                     }
                 }
+                cols.push(currentVal.trim().replace(/^"|"$/g, ''));
+                if (cols.length < 2) return;
+
+                // 1. Buscar Propina Total Mes de manera robusta
+                cols.forEach(function(cell, idx) {
+                    if (cell.toLowerCase().includes('propina total mes')) {
+                        let val = cleanNumber(cols[idx + 1]);
+                        if (val > 0) totalMes = val;
+                    }
+                });
 
                 // 2. Extraer Fecha (Columna B) y Propina Diaria (Columna C)
-                const fechaCol = cols[1];
-                const propDiariaCol = cleanNumber(cols[2]);
+                let fechaCol = cols[1];
+                let propDiariaCol = cleanNumber(cols[2]);
                 if (fechaCol && /^\d{1,2}-[a-zA-Z]{3}$/i.test(fechaCol)) {
                     dias.push(fechaCol);
                     propinasDiarias.push(propDiariaCol);
                 }
 
-                // 3. Detectar Área (Columna E)
-                const areaCol = cols[4];
-                if (['Garzones', 'Barra', 'Cocina', 'Part-Time'].includes(areaCol)) {
+                // 3. Detectar Área (Columna E / índice 4)
+                let areaCol = cols[4];
+                if (areaCol && areaCol.length > 0 && !areaCol.toLowerCase().includes('nan')) {
                     currentArea = areaCol;
                 }
 
-                // 4. Extraer Colaborador (Columna F) y Monto (Columna G)
-                const nombreCol = cols[5];
-                const montoCol = cleanNumber(cols[6]);
+                // 4. Extraer Colaborador (Columna F / índice 5) y Monto (Columna G / índice 6)
+                let nombreCol = cols[5];
+                let montoCol = cleanNumber(cols[6]);
 
-                if (nombreCol && nombreCol.length > 1 && !reserved.includes(nombreCol) && !/^\d+$/.test(nombreCol) && montoCol > 0) {
+                if (nombreCol && nombreCol.length > 1 && 
+                    !reserved.includes(nombreCol) && 
+                    !nombreCol.toLowerCase().includes('total') &&
+                    !/^\d+$/.test(nombreCol) && 
+                    montoCol > 0) {
+                    
                     let color = 'bg-blue-50 text-blue-700';
-                    if(currentArea === 'Barra') color = 'bg-purple-50 text-purple-700';
-                    if(currentArea === 'Cocina') color = 'bg-amber-50 text-amber-700';
-                    if(currentArea === 'Part-Time') color = 'bg-emerald-50 text-emerald-700';
+                    if(currentArea.includes('Barra')) color = 'bg-purple-50 text-purple-700';
+                    if(currentArea.includes('Cocina')) color = 'bg-amber-50 text-amber-700';
+                    if(currentArea.includes('Part')) color = 'bg-emerald-50 text-emerald-700';
 
+                    // Evitar duplicados exactos
                     if(!colaboradores.some(function(c) { return c.nombre === nombreCol; })) {
                         colaboradores.push({ nombre: nombreCol, area: currentArea, monto: montoCol, color: color });
                     }
                 }
             });
+
+            // Si totalMes no se detectó por texto, lo calculamos de la suma de propinas diarias o colaboradores
+            if (totalMes === 0) {
+                totalMes = propinasDiarias.reduce(function(a, b) { return a + b; }, 0);
+            }
 
             return { totalMes: totalMes, dias: dias, propinasDiarias: propinasDiarias, colaboradores: colaboradores };
         }
