@@ -25,7 +25,7 @@
                     <i class="fa-solid fa-shield-halved"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-slate-900">Portal de Transparencia</h2>
-                <p class="text-slate-500 text-sm mt-1">Ingresa el PIN de acceso autorizado</p>
+                <p class="text-slate-500 text-sm mt-1">Ingresa la clave para ver la rendición en vivo</p>
             </div>
             
             <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
@@ -53,19 +53,19 @@
                         </div>
                         <div>
                             <h1 class="text-lg font-bold text-slate-900 leading-tight">Control Oficial de Propinas</h1>
-                            <p class="text-xs text-slate-500">Origen directo: Planilla Google Drive (Pestaña Resumen)</p>
+                            <p class="text-xs text-slate-500">Google Sheets (Hoja Resumen)</p>
                         </div>
                     </div>
                     
                     <div class="flex items-center space-x-3">
                         <span id="syncBadge" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
                             <span class="w-2 h-2 mr-1.5 bg-slate-400 rounded-full"></span>
-                            Sin conectar
+                            Conectando...
                         </span>
 
                         <button id="syncBtn" onclick="fetchLiveData()" class="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg transition-all border border-slate-200">
                             <i id="syncIcon" class="fa-solid fa-rotate"></i>
-                            <span>Actualizar</span>
+                            <span>Sincronizar</span>
                         </button>
 
                         <div class="h-6 w-px bg-slate-200"></div>
@@ -85,14 +85,14 @@
             <div id="errorAlert" class="hidden bg-rose-50 border border-rose-200 text-rose-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
                 <div class="flex items-center space-x-2">
                     <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i>
-                    <span><strong>Error de Sincronización:</strong> No se pudo descargar la planilla oficial en vivo. Por transparencia, los datos no se mostrarán hasta restablecer la conexión.</span>
+                    <span><strong>Error de Lectura:</strong> No se pudo procesar la información de Google Sheets. Verifica que el archivo en Drive esté publicado en formato CSV.</span>
                 </div>
                 <button onclick="fetchLiveData()" class="bg-rose-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-rose-700">Reintentar</button>
             </div>
 
             <!-- Banner Confirmación Exitoso -->
             <div id="syncAlert" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-2.5 rounded-xl flex justify-between items-center transition-all">
-                <span><i class="fa-solid fa-circle-check mr-2 text-emerald-600"></i>Datos validados y sincronizados en tiempo real directamente desde Google Sheets. Hora: <strong id="lastSyncTime">--:--</strong></span>
+                <span><i class="fa-solid fa-circle-check mr-2 text-emerald-600"></i>Sincronización en tiempo real completada. Última consulta: <strong id="lastSyncTime">--:--</strong></span>
                 <button onclick="document.getElementById('syncAlert').classList.add('hidden')" class="text-emerald-600 hover:text-emerald-900 font-bold">&times;</button>
             </div>
 
@@ -104,7 +104,7 @@
                         <span class="p-2 bg-emerald-50 text-emerald-600 rounded-lg text-sm"><i class="fa-solid fa-wallet"></i></span>
                     </div>
                     <div class="mt-4">
-                        <h3 id="kpiTotal" class="text-3xl font-extrabold text-slate-900">--</h3>
+                        <h3 id="kpiTotal" class="text-3xl font-extrabold text-slate-900">$0</h3>
                         <p class="text-xs text-slate-500 mt-1">Consolidado Oficial</p>
                     </div>
                 </div>
@@ -115,8 +115,8 @@
                         <span class="p-2 bg-blue-50 text-blue-600 rounded-lg text-sm"><i class="fa-solid fa-chart-line"></i></span>
                     </div>
                     <div class="mt-4">
-                        <h3 id="kpiPromedio" class="text-3xl font-extrabold text-slate-900">--</h3>
-                        <p id="kpiDiasSub" class="text-xs text-slate-500 mt-1">Días con registro</p>
+                        <h3 id="kpiPromedio" class="text-3xl font-extrabold text-slate-900">$0</h3>
+                        <p id="kpiDiasSub" class="text-xs text-slate-500 mt-1">Días registrados</p>
                     </div>
                 </div>
 
@@ -126,8 +126,8 @@
                         <span class="p-2 bg-purple-50 text-purple-600 rounded-lg text-sm"><i class="fa-solid fa-arrow-trend-up"></i></span>
                     </div>
                     <div class="mt-4">
-                        <h3 id="kpiMaximo" class="text-3xl font-extrabold text-slate-900">--</h3>
-                        <p id="kpiMaxFecha" class="text-xs text-slate-500 mt-1">Fecha del pico</p>
+                        <h3 id="kpiMaximo" class="text-3xl font-extrabold text-slate-900">$0</h3>
+                        <p id="kpiMaxFecha" class="text-xs text-slate-500 mt-1">Fecha del máximo</p>
                     </div>
                 </div>
 
@@ -137,8 +137,8 @@
                         <span class="p-2 bg-amber-50 text-amber-600 rounded-lg text-sm"><i class="fa-solid fa-users"></i></span>
                     </div>
                     <div class="mt-4">
-                        <h3 id="kpiPersonal" class="text-3xl font-extrabold text-slate-900">--</h3>
-                        <p class="text-xs text-slate-500 mt-1">Colaboradores con asignación</p>
+                        <h3 id="kpiPersonal" class="text-3xl font-extrabold text-slate-900">0</h3>
+                        <p class="text-xs text-slate-500 mt-1">Colaboradores detectados</p>
                     </div>
                 </div>
             </div>
@@ -153,7 +153,7 @@
                 </div>
 
                 <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-                    <h3 class="text-base font-bold text-slate-900 mb-4"><i class="fa-solid fa-chart-pie text-emerald-600 mr-2"></i>Distribución Oficial por Persona</h3>
+                    <h3 class="text-base font-bold text-slate-900 mb-4"><i class="fa-solid fa-chart-pie text-emerald-600 mr-2"></i>Distribución por Persona</h3>
                     <div class="h-72">
                         <canvas id="staffChart"></canvas>
                     </div>
@@ -164,7 +164,7 @@
             <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="text-base font-bold text-slate-900">Nómina y Desglose por Colaborador</h3>
-                    <span class="text-xs text-slate-400">Pestaña "Resumen"</span>
+                    <span class="text-xs text-slate-400">Extraído en tiempo real</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-sm">
@@ -176,7 +176,7 @@
                             </tr>
                         </thead>
                         <tbody id="staffTableBody" class="divide-y divide-slate-100 text-slate-700">
-                            <tr><td colspan="3" class="px-6 py-8 text-center text-slate-400">Cargando datos oficiales...</td></tr>
+                            <tr><td colspan="3" class="px-6 py-8 text-center text-slate-400">Procesando datos de la planilla...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -186,7 +186,7 @@
     </div>
 
     <script>
-        const RAW_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVCGI2Q3WgpJi9rz-FXyQ7ugPGiqY_Nc4e0fBFb8pV1lYtoGrmt1Zlaf6AHpMFBg/pub?gid=1672948599&single=true&output=csv";
+        const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVCGI2Q3WgpJi9rz-FXyQ7ugPGiqY_Nc4e0fBFb8pV1lYtoGrmt1Zlaf6AHpMFBg/pub?gid=1672948599&single=true&output=csv";
 
         let dailyChartInstance = null;
         let staffChartInstance = null;
@@ -197,7 +197,7 @@
 
         function cleanNumber(str) {
             if (!str) return 0;
-            const cleaned = str.replace(/[^0-9,-]/g, '').replace(',', '.');
+            const cleaned = str.replace(/[^0-9]/g, '');
             return parseFloat(cleaned) || 0;
         }
 
@@ -220,20 +220,21 @@
         }
 
         function parseCSV(text) {
-            const lines = text.split('\n').map(l => {
+            const rawLines = text.split(/\r?\n/);
+            const matrix = rawLines.map(line => {
                 const row = [];
                 let inQuotes = false;
                 let current = '';
-                for (let char of l) {
+                for (let char of line) {
                     if (char === '"') inQuotes = !inQuotes;
                     else if (char === ',' && !inQuotes) {
-                        row.push(current.trim());
+                        row.push(current.trim().replace(/^"|"$/g, ''));
                         current = '';
                     } else {
                         current += char;
                     }
                 }
-                row.push(current.trim());
+                row.push(current.trim().replace(/^"|"$/g, ''));
                 return row;
             });
 
@@ -243,42 +244,61 @@
             let colaboradores = [];
             let currentArea = 'Garzones';
 
-            lines.forEach((row) => {
+            const ignoredNames = ['Garzones', 'Barra', 'Cocina', 'Part-Time', 'Part-time', 'Total', 'Propina Total Mes', 'Total Propina', 'Resumen', 'Propina Diaria', 'Asistencia'];
+
+            matrix.forEach(row => {
+                // 1. Buscar Total Mes
+                row.forEach((cell, idx) => {
+                    if (cell.toLowerCase().includes('propina total mes')) {
+                        for (let j = idx + 1; j < row.length; j++) {
+                            const val = cleanNumber(row[j]);
+                            if (val > 0) {
+                                totalMes = val;
+                                break;
+                            }
+                        }
+                    }
+                });
+
+                // 2. Extraer fechas y propinas diarias
                 const col0 = row[0] || '';
                 const col1 = row[1] || '';
-                const col2 = row[2] || '';
-                const col3 = row[3] || '';
-                const col4 = row[4] || '';
-                const col5 = row[5] || '';
-
-                if (col4.includes('Propina Total Mes')) {
-                    totalMes = cleanNumber(col5);
-                }
-
-                if (/^\d{1,2}-[A-Za-z]{3}$/.test(col0)) {
-                    const monto = cleanNumber(col1);
+                if (/^\d{1,2}-[A-Za-z]{3}$/i.test(col0) \vert{}\vert{} /^\d{1,2}\/[0-9]{1,2}$/.test(col0)) {
+                    const montoDia = cleanNumber(col1);
                     dias.push(col0);
-                    propinasDiarias.push(monto);
+                    propinasDiarias.push(montoDia);
                 }
 
-                if (['Garzones', 'Barra', 'Cocina', 'Part-Time'].includes(col2)) {
-                    currentArea = col2;
-                }
+                // 3. Detectar cambios de Área
+                row.forEach(cell => {
+                    if (['Garzones', 'Barra', 'Cocina', 'Part-Time'].includes(cell)) {
+                        currentArea = cell;
+                    }
+                });
 
-                if (col3 && !['Garzones', 'Barra', 'Cocina', 'Part-Time', 'Total', 'Propina Total Mes', 'Total Propina'].includes(col3) && col4) {
-                    const montoColab = cleanNumber(col4);
-                    if (montoColab > 0) {
-                        let colorClass = 'bg-blue-50 text-blue-700';
-                        if (currentArea === 'Barra') colorClass = 'bg-purple-50 text-purple-700';
-                        if (currentArea === 'Cocina') colorClass = 'bg-amber-50 text-amber-700';
-                        if (currentArea === 'Part-Time') colorClass = 'bg-emerald-50 text-emerald-700';
+                // 4. Extraer Colaboradores
+                for (let i = 0; i < row.length - 1; i++) {
+                    const possibleName = row[i];
+                    const possibleValue = row[i + 1];
 
-                        colaboradores.push({
-                            nombre: col3,
-                            area: currentArea,
-                            monto: montoColab,
-                            color: colorClass
-                        });
+                    if (possibleName && possibleName.length > 2 && !ignoredNames.includes(possibleName) && !/^\d+$/.test(possibleName)) {
+                        const val = cleanNumber(possibleValue);
+                        if (val > 1000) { 
+                            let colorClass = 'bg-blue-50 text-blue-700';
+                            if (currentArea === 'Barra') colorClass = 'bg-purple-50 text-purple-700';
+                            if (currentArea === 'Cocina') colorClass = 'bg-amber-50 text-amber-700';
+                            if (currentArea === 'Part-Time') colorClass = 'bg-emerald-50 text-emerald-700';
+
+                            // Evitar duplicados
+                            if (!colaboradores.some(c => c.nombre === possibleName)) {
+                                colaboradores.push({
+                                    nombre: possibleName,
+                                    area: currentArea,
+                                    monto: val,
+                                    color: colorClass
+                                });
+                            }
+                        }
                     }
                 }
             });
@@ -295,31 +315,22 @@
 
             icon.classList.add('fa-spin');
             badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800";
-            badge.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-amber-500 rounded-full animate-ping"></span>Conectando a Drive...`;
+            badge.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-amber-500 rounded-full animate-ping"></span>Obteniendo datos...`;
             errorAlert.classList.add('hidden');
 
-            // Intentos de endpoint: Directo primero, luego Proxy si falla por CORS local
-            const endpoints = [
-                RAW_CSV_URL + '&_t=' + new Date().getTime(),
-                "https://api.allorigins.win/raw?url=" + encodeURIComponent(RAW_CSV_URL)
-            ];
-
-            let csvText = null;
-
-            for (let url of endpoints) {
-                try {
-                    const response = await fetch(url);
-                    if (response.ok) {
-                        csvText = await response.text();
-                        if (csvText && csvText.includes('Propina')) break;
-                    }
-                } catch (e) {
-                    console.warn("Intento fallido en:", url);
-                }
-            }
-
-            if (csvText) {
+            try {
+                // Petición directa libre de caché
+                const response = await fetch(CSV_URL + '&_t=' + new Date().getTime());
+                
+                if (!response.ok) throw new Error("Respuesta de red no válida");
+                
+                const csvText = await response.text();
                 const data = parseCSV(csvText);
+
+                if (data.colaboradores.length === 0 && data.propinasDiarias.length === 0) {
+                    throw new Error("CSV vacío o con estructura incompatible");
+                }
+
                 renderDashboard(data);
 
                 icon.classList.remove('fa-spin');
@@ -329,11 +340,12 @@
                 const now = new Date();
                 timeSpan.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                 alertBox.classList.remove('hidden');
-            } else {
-                // Si falla completamente la conexión, mostramos mensaje de alerta y no inventamos datos
+
+            } catch (error) {
+                console.error("Error al procesar el CSV:", error);
                 icon.classList.remove('fa-spin');
                 badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-800";
-                badge.innerHTML = `Error de Conexión`;
+                badge.innerHTML = `Error de Lectura`;
                 errorAlert.classList.remove('hidden');
                 alertBox.classList.add('hidden');
             }
@@ -363,19 +375,15 @@
             const tableBody = document.getElementById('staffTableBody');
             tableBody.innerHTML = '';
             
-            if (data.colaboradores.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-slate-400">No se encontraron registros de colaboradores en la hoja "Resumen".</td></tr>';
-            } else {
-                data.colaboradores.forEach(colab => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td class="px-6 py-4"><span class="px-2.5 py-1 ${colab.color} rounded-md font-medium text-xs">${colab.area}</span></td>
-                        <td class="px-6 py-4 font-medium text-slate-800">${colab.nombre}</td>
-                        <td class="px-6 py-4 text-right font-bold text-slate-900">${formatCLP(colab.monto)}</td>
-                    `;
-                    tableBody.appendChild(tr);
-                });
-            }
+            data.colaboradores.forEach(colab => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-6 py-4"><span class="px-2.5 py-1 ${colab.color} rounded-md font-medium text-xs">${colab.area}</span></td>
+                    <td class="px-6 py-4 font-medium text-slate-800">${colab.nombre}</td>
+                    <td class="px-6 py-4 text-right font-bold text-slate-900">${formatCLP(colab.monto)}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
 
             renderCharts(data);
         }
