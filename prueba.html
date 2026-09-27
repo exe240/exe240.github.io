@@ -130,7 +130,7 @@
             </div>
 
             <!-- Métricas KPI -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            <div id="kpiContainer" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                 <div class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
                     <span id="kpiTitlePrimary" class="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Propina Total Mes</span>
                     <h3 id="kpiTotal" class="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2 truncate">$0</h3>
@@ -140,12 +140,12 @@
                     <h3 id="kpiPromedio" class="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2 truncate">$0</h3>
                     <p id="kpiDiasSub" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">Días registrados</p>
                 </div>
-                <div class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+                <div id="kpiMaxCard" class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
                     <span class="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Máximo Diario</span>
                     <h3 id="kpiMaximo" class="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2 truncate">$0</h3>
                     <p id="kpiMaxFecha" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">--</p>
                 </div>
-                <div class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm col-span-2 lg:col-span-1">
+                <div id="kpiStaffCard" class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm col-span-2 lg:col-span-1">
                     <span class="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Personal Registrado</span>
                     <h3 id="kpiPersonal" class="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2">0</h3>
                 </div>
@@ -153,7 +153,7 @@
 
             <!-- Gráficos -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-                <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+                <div id="dailyChartWrapper" class="lg:col-span-3 bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm transition-all">
                     <h3 id="chartTitleDaily" class="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-4">Evolución Diaria</h3>
                     <div class="h-60 sm:h-72"><canvas id="dailyChart"></canvas></div>
                 </div>
@@ -190,24 +190,26 @@
         // ==========================================
         // BASE DE DATOS DE USUARIOS Y CONTRASEÑAS (SHA-256)
         // ==========================================
-        // Contraseñas de ejemplo (puedes cambiarlas en hashes SHA-256 reales):
-        // admin -> 2398cad5b795431ab7f0b3319864ee2c41000afe2f00b61064e3f89f6e03d802 (Contraseña: 'admin')
-        // colaborador1 -> a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3 (Contraseña: '123')
         const USERS_DB = {
             "admin": {
                 hash: "2398cad5b795431ab7f0b3319864ee2c41000afe2f00b61064e3f89f6e03d802",
                 role: "Administrador",
-                colleagueName: null // Ve todo
+                colleagueName: null 
             },
-            "javiera.n": {
-                hash: "ff960cb55673958c594d0daaab1e368651c75c02f9687192a1811e7b180336a7",
+            "javiera": {
+                hash: "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
                 role: "Colaborador",
-                colleagueName: "Javiera Navarrete" // Ajustar al nombre exacto como aparece en la planilla de Google Sheets
+                colleagueName: "Javiera Navarrete" 
             },
-            "yaritza.a": {
-                hash: "ff960cb55673958c594d0daaab1e368651c75c02f9687192a1811e7b180336a7",
+            "juan": {
+                hash: "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
                 role: "Colaborador",
-                colleagueName: "Yaritza Abarca" // Ajustar al nombre exacto de la planilla
+                colleagueName: "Juan Pérez" 
+            },
+            "maria": {
+                hash: "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+                role: "Colaborador",
+                colleagueName: "María Gómez" 
             }
         };
 
@@ -526,24 +528,42 @@
                 if(m > maxMonto) { maxMonto = m; maxIdx = i; } 
             });
 
+            const kpiContainer = document.getElementById('kpiContainer');
+            const kpiMaxCard = document.getElementById('kpiMaxCard');
+            const kpiStaffCard = document.getElementById('kpiStaffCard');
+            const distributionContainer = document.getElementById('distributionContainer');
+            const tableContainerCard = document.getElementById('tableContainerCard');
+            const dailyChartWrapper = document.getElementById('dailyChartWrapper');
+
             if (isCollaboratorRole) {
-                // Si es colaborador, su propina total personal es la que figura en su registro
+                // Ocultar tarjetas de Admin y ajustar diseño a 2 columnas para el colaborador
+                if(kpiMaxCard) kpiMaxCard.style.display = 'none';
+                if(kpiStaffCard) kpiStaffCard.style.display = 'none';
+                if(kpiContainer) kpiContainer.className = "grid grid-cols-2 gap-3 sm:gap-6 max-w-2xl";
+
+                // Ocultar elementos exclusivos de administración
+                if(distributionContainer) distributionContainer.style.display = 'none';
+                if(tableContainerCard) tableContainerCard.style.display = 'none';
+                if(dailyChartWrapper) dailyChartWrapper.className = "lg:col-span-3 bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm transition-all";
+
                 let personalTotal = activeColaboradores.reduce(function(acc, curr) { return acc + curr.monto; }, 0);
                 let personalPromedio = valids.length ? personalTotal / valids.length : 0;
 
                 document.getElementById('kpiTitlePrimary').innerText = 'Tu Propina Asignada';
                 document.getElementById('kpiTotal').innerText = formatCLP(personalTotal);
                 document.getElementById('kpiPromedio').innerText = formatCLP(personalPromedio);
-                document.getElementById('kpiDiasSub').innerText = 'Promedio por día activo';
-                document.getElementById('kpiMaximo').innerText = formatCLP(personalTotal); // Ocultar máximos globales de la empresa
-                document.getElementById('kpiMaxFecha').innerText = 'Correspondiente al mes';
-                document.getElementById('kpiPersonal').innerText = '1 (Tú)';
-
-                // Ocultar gráfico global de distribución si es solo un usuario
-                document.getElementById('distributionContainer').style.display = 'none';
-                document.getElementById('chartTitleDaily').innerText = 'Tu Asignación / Actividad';
+                document.getElementById('kpiDiasSub').innerText = 'Promedio en los días registrados';
+                document.getElementById('chartTitleDaily').innerText = 'Evolución diaria del total propinas';
             } else {
                 // Vista Administrador completa
+                if(kpiMaxCard) kpiMaxCard.style.display = 'block';
+                if(kpiStaffCard) kpiStaffCard.style.display = 'block';
+                if(kpiContainer) kpiContainer.className = "grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6";
+
+                if(distributionContainer) distributionContainer.style.display = 'block';
+                if(tableContainerCard) tableContainerCard.style.display = 'block';
+                if(dailyChartWrapper) dailyChartWrapper.className = "lg:col-span-2 bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm";
+
                 document.getElementById('kpiTitlePrimary').innerText = 'Propina Total Mes';
                 document.getElementById('kpiTotal').innerText = formatCLP(data.totalMes || sumGenerales);
                 document.getElementById('kpiPromedio').innerText = formatCLP(avgGenerales);
@@ -551,24 +571,22 @@
                 document.getElementById('kpiMaximo').innerText = formatCLP(maxMonto);
                 document.getElementById('kpiMaxFecha').innerText = maxIdx !== -1 ? 'El ' + data.dias[maxIdx] : '--';
                 document.getElementById('kpiPersonal').innerText = data.colaboradores.length;
-
-                document.getElementById('distributionContainer').style.display = 'block';
                 document.getElementById('chartTitleDaily').innerText = 'Evolución Diaria';
-            }
 
-            // Renderizado de la tabla
-            const tbody = document.getElementById('staffTableBody');
-            tbody.innerHTML = '';
-            if (activeColaboradores.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-6 text-center text-slate-400">No hay registros asociados para este usuario.</td></tr>';
-            } else {
-                activeColaboradores.forEach(function(c) {
-                    tbody.innerHTML += '<tr>' +
-                        '<td class="px-4 sm:px-6 py-3.5"><span class="px-2.5 py-1 ' + c.color + ' rounded-md font-medium text-[11px] sm:text-xs">' + c.area + '</span></td>' +
-                        '<td class="px-4 sm:px-6 py-3.5 font-medium text-slate-800 dark:text-slate-200">' + c.nombre + '</td>' +
-                        '<td class="px-4 sm:px-6 py-3.5 text-right font-bold text-slate-900 dark:text-white">' + formatCLP(c.monto) + '</td>' +
-                    '</tr>';
-                });
+                // Renderizado de la tabla admin
+                const tbody = document.getElementById('staffTableBody');
+                tbody.innerHTML = '';
+                if (activeColaboradores.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-6 text-center text-slate-400">No hay registros asociados.</td></tr>';
+                } else {
+                    activeColaboradores.forEach(function(c) {
+                        tbody.innerHTML += '<tr>' +
+                            '<td class="px-4 sm:px-6 py-3.5"><span class="px-2.5 py-1 ' + c.color + ' rounded-md font-medium text-[11px] sm:text-xs">' + c.area + '</span></td>' +
+                            '<td class="px-4 sm:px-6 py-3.5 font-medium text-slate-800 dark:text-slate-200">' + c.nombre + '</td>' +
+                            '<td class="px-4 sm:px-6 py-3.5 text-right font-bold text-slate-900 dark:text-white">' + formatCLP(c.monto) + '</td>' +
+                        '</tr>';
+                    });
+                }
             }
 
             renderCharts(data, activeColaboradores, isCollaboratorRole);
