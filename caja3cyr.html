@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transparencia de Cuentas del Curso</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js DataLabels Plugin -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-200">
+
+    <!-- Pantalla de Autenticación con Google -->
+    <div id="authOverlay" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-xl max-w-sm w-full space-y-6 text-center">
+            <div class="space-y-2">
+                <div class="inline-block p-3 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-xl mb-1">
+                    <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                </div>
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Portal del Curso</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Inicia sesión con tu correo autorizado para consultar las cuentas e ingresos.</p>
+            </div>
+
+            <!-- Botón Oficial de Google Sign-In -->
+            <div class="flex justify-center py-2">
+                <div id="g_id_onload"
+                     data-client_id="TU_CLIENT_ID_DE_GOOGLE.apps.googleusercontent.com"
+                     data-callback="handleCredentialResponse"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-shape="rectangular"
+                     data-theme="outline"
+                     data-text="sign_in_with"
+                     data-size="large"
+                     data-logo_alignment="left">
+                </div>
+            </div>
+
+            <p id="errorPass" class="text-xs text-rose-600 dark:text-rose-400 mt-2 hidden">Este correo de Google no está registrado o autorizado en la lista del curso.</p>
+        </div>
+    </div>
+
+    <!-- Panel Principal / Dashboard -->
+    <div id="dashboardContent" class="min-h-screen pb-12">
+        <nav class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 transition-colors duration-200">
+            <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+                <div class="flex flex-col sm:flex-row justify-between items-center py-3 sm:h-16 gap-3 sm:gap-0">
+                    
+                    <!-- Logo e Identidad -->
+                    <div class="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-start">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-2 bg-indigo-600 text-white rounded-lg shrink-0">
+                                <i class="fa-solid fa-piggy-bank text-lg sm:text-xl"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-sm sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">Estado de Cuentas del Curso</h1>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Transparencia Financiera (<span id="userRoleBadge" class="font-medium text-indigo-600 dark:text-indigo-400">--</span>)</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Acciones Rápidas Mobile -->
+                        <div class="flex sm:hidden items-center space-x-1.5">
+                            <button onclick="toggleDarkMode()" title="Cambiar tema" class="p-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-lg border border-slate-200 dark:border-slate-600">
+                                <i id="themeIconMobile" class="fa-solid fa-moon"></i>
+                            </button>
+                            <button onclick="logout()" title="Cerrar sesión" class="p-2 bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-xs rounded-lg border border-rose-200 dark:border-rose-900">
+                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Controles Generales -->
+                    <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+                        <!-- Selector de Período / Año -->
+                        <div class="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-1.5 rounded-lg flex-1 sm:flex-initial">
+                            <i class="fa-regular fa-calendar text-slate-400 text-xs"></i>
+                            <select id="periodSelector" onchange="changePeriod()" class="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer w-full sm:w-auto">
+                                <!-- Opciones cargadas dinámicamente -->
+                            </select>
+                        </div>
+
+                        <span id="syncBadge" class="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                            <span class="w-2 h-2 mr-1.5 bg-slate-400 rounded-full"></span>
+                            Conectando...
+                        </span>
+
+                        <button onclick="fetchLiveData()" title="Sincronizar datos" class="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium text-xs rounded-lg transition-all border border-slate-200 dark:border-slate-600">
+                            <i id="syncIcon" class="fa-solid fa-rotate"></i>
+                            <span>Sincronizar</span>
+                        </button>
+
+                        <button onclick="toggleDarkMode()" title="Cambiar modo oscuro" class="hidden sm:flex items-center justify-center p-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium text-xs rounded-lg transition-all border border-slate-200 dark:border-slate-600">
+                            <i id="themeIcon" class="fa-solid fa-moon"></i>
+                        </button>
+
+                        <button onclick="logout()" title="Cerrar sesión" class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 font-medium text-xs rounded-lg transition-all border border-rose-200 dark:border-rose-900">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            <span>Salir</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 space-y-6">
+            <!-- Alertas de Estado -->
+            <div id="errorAlert" class="hidden bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300 text-xs px-4 py-3 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-600 dark:text-rose-400 text-base shrink-0"></i>
+                    <span><strong>Error de conexión:</strong> No se pudo sincronizar la información con Google Sheets.</span>
+                </div>
+                <button onclick="fetchLiveData()" class="bg-rose-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-rose-700 self-end sm:self-auto">Reintentar</button>
+            </div>
+
+            <div id="syncAlert" class="hidden bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 text-xs px-4 py-2 rounded-xl flex justify-between items-center">
+                <span>
+                    <i class="fa-solid fa-circle-check mr-2 text-emerald-600 dark:text-emerald-400"></i>
+                    Datos cargados correctamente (Última actualización: <span id="lastSyncTime">--:--</span>)
+                </span>
+                <button onclick="document.getElementById('syncAlert').classList.add('hidden')" class="text-emerald-600 dark:text-emerald-400 font-bold">&times;</button>
+            </div>
+
+            <!-- Métricas KPI Principales -->
+            <div id="kpiContainer" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                <div class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+                    <span id="kpiTitlePrimary" class="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Fondo Total Acumulado</span>
+                    <h3 id="kpiSaldoTotal" class="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2 truncate">$0</h3>
+                    <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5 font-medium truncate">Disponible en caja</p>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+                    <span class="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Recaudado Cuotas</span>
+                    <h3 id="kpiTotalCuotas" class="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2 truncate">$0</h3>
+                    <p id="kpiCuotasSub" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">Total mensual acumulado</p>
+                </div>
+                <div id="kpiIngresosExtraCard" class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+                    <span class="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Otros Ingresos</span>
+                    <h3 id="kpiIngresosExtra" class="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2 truncate">$0</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">Rifas, eventos, ventas</p>
+                </div>
+                <div id="kpiEgresosCard" class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+                    <span class="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Egresos / Gastos</span>
+                    <h3 id="kpiTotalEgresos" class="text-xl sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 mt-1 sm:mt-2 truncate">$0</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">Gastos operativos del curso</p>
+                </div>
+            </div>
+
+            <!-- Visualizaciones / Gráficos -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+                <div id="historyChartWrapper" class="lg:col-span-2 bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+                    <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-4">Evolución de Ingresos y Egresos</h3>
+                    <div class="h-60 sm:h-72"><canvas id="cashflowChart"></canvas></div>
+                </div>
+                <div id="statusDistributionCard" class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+                    <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-4">Cumplimiento de Cuotas</h3>
+                    <div class="h-60 sm:h-72"><canvas id="cuotasPieChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Tabla de Estado Individual por Alumno (Vista General / Directiva) -->
+            <div id="studentsTableCard" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Estado de Cuotas por Alumno</h3>
+                    <input type="text" id="searchInput" onkeyup="filterStudentsTable()" placeholder="Buscar alumno..." class="w-full sm:w-64 px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[500px]">
+                        <thead>
+                            <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
+                                <th class="px-4 sm:px-6 py-3 font-semibold">N°</th>
+                                <th class="px-4 sm:px-6 py-3 font-semibold">Alumno / Apoderado</th>
+                                <th class="px-4 sm:px-6 py-3 font-semibold text-center">Estado</th>
+                                <th class="px-4 sm:px-6 py-3 font-semibold text-right">Monto Pagado</th>
+                                <th class="px-4 sm:px-6 py-3 font-semibold text-right">Saldo Pendiente</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
+                            <tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">Cargando información del curso...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ==========================================
+        // BASE DE DATOS Y ROLES DE ACCESO
+        // ==========================================
+        const AUTHORIZED_USERS = {
+            "tesoreria.curso@gmail.com": {
+                role: "Directiva",
+                studentName: null
+            },
+            "apoderado1@gmail.com": {
+                role: "Apoderado",
+                studentName: "Juan Pérez"
+            },
+            "apoderado2@gmail.com": {
+                role: "Apoderado",
+                studentName: "María Gómez"
+            }
+        };
+
+        // ==========================================
+        // ENLACES CSV (PUBLICADOS DESDE GOOGLE SHEETS)
+        // ==========================================
+        const PERIODS_DATABASE = {
+            "Año Lectivo 2026": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVCGI2Q3WgpJi9rz-FXyQ7ugPGiqY_Nc4e0fBFb8pV1lYtoGrmt1Zlaf6AHpMFBg/pub?gid=0&single=true&output=csv"
+        };
+
+        let cashflowChartInstance = null;
+        let cuotasPieChartInstance = null;
+
+        // ==========================================
+        // INICIALIZACIÓN
+        // ==========================================
+        window.onload = function() {
+            initTheme();
+            populatePeriodSelector();
+            
+            if (sessionStorage.getItem('authenticated') === 'true') {
+                document.getElementById('authOverlay').style.display = 'none';
+                const userEmail = sessionStorage.getItem('currentUserEmail');
+                applyUserRoleUI(userEmail);
+                fetchLiveData();
+            }
+        };
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                updateThemeIcon(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeIcon(false);
+            }
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateThemeIcon(isDark);
+            if (window.lastProcessedData) {
+                renderDashboard(window.lastProcessedData);
+            }
+        }
+
+        function updateThemeIcon(isDark) {
+            const icon = document.getElementById('themeIcon');
+            const iconMobile = document.getElementById('themeIconMobile');
+            const className = isDark ? "fa-solid fa-sun" : "fa-solid fa-moon";
+            if (icon) icon.className = className;
+            if (iconMobile) iconMobile.className = className;
+        }
+
+        function populatePeriodSelector() {
+            const selector = document.getElementById('periodSelector');
+            selector.innerHTML = '';
+            for (const periodName in PERIODS_DATABASE) {
+                const option = document.createElement('option');
+                option.value = periodName;
+                option.textContent = periodName;
+                selector.appendChild(option);
+            }
+        }
+
+        function changePeriod() {
+            fetchLiveData();
+        }
+
+        // ==========================================
+        // AUTENTICACIÓN GOOGLE
+        // ==========================================
+        function parseJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(c => {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function handleCredentialResponse(response) {
+            const responsePayload = parseJwt(response.credential);
+            const userEmail = responsePayload.email ? responsePayload.email.toLowerCase() : '';
+
+            if (AUTHORIZED_USERS[userEmail]) {
+                document.getElementById('authOverlay').style.display = 'none';
+                sessionStorage.setItem('authenticated', 'true');
+                sessionStorage.setItem('currentUserEmail', userEmail);
+                document.getElementById('errorPass').classList.add('hidden');
+
+                applyUserRoleUI(userEmail);
+                fetchLiveData();
+            } else {
+                document.getElementById('errorPass').classList.remove('hidden');
+            }
+        }
+
+        function applyUserRoleUI(email) {
+            const userObj = AUTHORIZED_USERS[email];
+            const badgeEl = document.getElementById('userRoleBadge');
+            if (userObj) {
+                badgeEl.innerText = userObj.role === 'Directiva' ? 'Directiva / Tesorería' : userObj.studentName;
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('authenticated');
+            sessionStorage.removeItem('currentUserEmail');
+            document.getElementById('authOverlay').style.display = 'flex';
+            document.getElementById('errorPass').classList.add('hidden');
+        }
+
+        // ==========================================
+        // OBTENCIÓN Y PROCESAMIENTO DE DATOS
+        // ==========================================
+        function formatCLP(val) { return '$' + Math.round(val).toLocaleString('es-CL'); }
+        function cleanNumber(val) { 
+            if (typeof val === 'number') return val;
+            return parseFloat((val || '').toString().replace(/[^0-9]/g, '')) || 0; 
+        }
+
+        async function fetchLiveData() {
+            const selectedPeriod = document.getElementById('periodSelector').value;
+            const CSV_URL = PERIODS_DATABASE[selectedPeriod];
+            if (!CSV_URL) return;
+
+            const icon = document.getElementById('syncIcon');
+            const badge = document.getElementById('syncBadge');
+            const alertBox = document.getElementById('syncAlert');
+            const errorAlert = document.getElementById('errorAlert');
+
+            if (icon) icon.classList.add('fa-spin');
+            if (badge) {
+                badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800";
+                badge.innerHTML = "Sincronizando...";
+            }
+            errorAlert.classList.add('hidden');
+
+            try {
+                const response = await fetch(CSV_URL + "&_t=" + Date.now());
+                if (!response.ok) throw new Error("Error al obtener datos");
+                
+                const csvText = await response.text();
+                const parsedData = processCsvData(csvText);
+                window.lastProcessedData = parsedData;
+
+                renderDashboard(parsedData);
+
+                if (icon) icon.classList.remove('fa-spin');
+                if (badge) {
+                    badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-300";
+                    badge.innerHTML = "En Vivo";
+                }
+                
+                document.getElementById('lastSyncTime').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                alertBox.classList.remove('hidden');
+            } catch (err) {
+                console.error("Error de lectura:", err);
+                if (icon) icon.classList.remove('fa-spin');
+                if (badge) {
+                    badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-800";
+                    badge.innerHTML = "Error";
+                }
+                errorAlert.classList.remove('hidden');
+            }
+        }
+
+        function processCsvData(csvText) {
+            let totalCuotas = 0;
+            let totalOtrosIngresos = 0;
+            let totalEgresos = 0;
+            let alumnos = [];
+            let meses = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov'];
+            let ingresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+            let egresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+            const lines = csvText.split('\n');
+
+            lines.forEach((line, index) => {
+                let cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                if (cols.length < 3) return;
+
+                // Ejemplo de estructura de parseo adaptable a la planilla del curso
+                let nombre = cols[1];
+                let pagado = cleanNumber(cols[2]);
+                let pendiente = cleanNumber(cols[3]);
+
+                if (nombre && index > 0 && !nombre.toLowerCase().includes('total')) {
+                    alumnos.push({
+                        id: index,
+                        nombre: nombre,
+                        pagado: pagado,
+                        pendiente: pendiente,
+                        alDia: pendiente === 0
+                    });
+                    totalCuotas += pagado;
+                }
+            });
+
+            let saldoTotal = (totalCuotas + totalOtrosIngresos) - totalEgresos;
+
+            return {
+                saldoTotal,
+                totalCuotas,
+                totalOtrosIngresos,
+                totalEgresos,
+                alumnos,
+                meses,
+                ingresosMes,
+                egresosMes
+            };
+        }
+
+        // ==========================================
+        // RENDERIZADO DEL DASHBOARD
+        // ==========================================
+        function renderDashboard(data) {
+            const currentUserEmail = sessionStorage.getItem('currentUserEmail');
+            const userObj = AUTHORIZED_USERS[currentUserEmail];
+            const isApoderado = userObj && userObj.role === 'Apoderado';
+
+            let activeAlumnos = data.alumnos;
+
+            if (isApoderado) {
+                activeAlumnos = data.alumnos.filter(a => a.nombre.toLowerCase().includes(userObj.studentName.toLowerCase()));
+                const alumnoInfo = activeAlumnos[0] || { pagado: 0, pendiente: 0 };
+
+                document.getElementById('kpiTitlePrimary').innerText = 'Estado de Tu Cuenta';
+                document.getElementById('kpiSaldoTotal').innerText = alumnoInfo.pendiente === 0 ? 'AL DÍA' : 'PENDIENTE';
+                document.getElementById('kpiTotalCuotas').innerText = formatCLP(alumnoInfo.pagado);
+                document.getElementById('kpiIngresosExtraCard').style.display = 'none';
+                document.getElementById('kpiEgresosCard').style.display = 'none';
+                document.getElementById('studentsTableCard').style.display = 'none';
+            } else {
+                document.getElementById('kpiTitlePrimary').innerText = 'Fondo Total Acumulado';
+                document.getElementById('kpiSaldoTotal').innerText = formatCLP(data.saldoTotal);
+                document.getElementById('kpiTotalCuotas').innerText = formatCLP(data.totalCuotas);
+                document.getElementById('kpiIngresosExtra').innerText = formatCLP(data.totalOtrosIngresos);
+                document.getElementById('kpiTotalEgresos').innerText = formatCLP(data.totalEgresos);
+                
+                document.getElementById('kpiIngresosExtraCard').style.display = 'block';
+                document.getElementById('kpiEgresosCard').style.display = 'block';
+                document.getElementById('studentsTableCard').style.display = 'block';
+
+                renderStudentsTable(activeAlumnos);
+            }
+
+            renderCharts(data, isApoderado);
+        }
+
+        function renderStudentsTable(alumnos) {
+            const tbody = document.getElementById('studentsTableBody');
+            tbody.innerHTML = '';
+
+            if (alumnos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-6 text-center text-slate-400">No se encontraron registros.</td></tr>';
+                return;
+            }
+
+            alumnos.forEach((a, idx) => {
+                const statusBadge = a.alDia 
+                    ? '<span class="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded font-semibold text-[11px]">Al Día</span>'
+                    : '<span class="px-2 py-0.5 bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 rounded font-semibold text-[11px]">Pendiente</span>';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="px-4 sm:px-6 py-3.5 text-slate-400">${idx + 1}</td>
+                        <td class="px-4 sm:px-6 py-3.5 font-medium text-slate-800 dark:text-slate-200">${a.nombre}</td>
+                        <td class="px-4 sm:px-6 py-3.5 text-center">${statusBadge}</td>
+                        <td class="px-4 sm:px-6 py-3.5 text-right font-bold text-slate-900 dark:text-white">${formatCLP(a.pagado)}</td>
+                        <td class="px-4 sm:px-6 py-3.5 text-right font-medium text-slate-500 dark:text-slate-400">${formatCLP(a.pendiente)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function filterStudentsTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            if (!window.lastProcessedData) return;
+            const filtered = window.lastProcessedData.alumnos.filter(a => a.nombre.toLowerCase().includes(query));
+            renderStudentsTable(filtered);
+        }
+
+        function renderCharts(data, isApoderado) {
+            if (cashflowChartInstance) cashflowChartInstance.destroy();
+            if (cuotasPieChartInstance) cuotasPieChartInstance.destroy();
+
+            const isDark = document.documentElement.classList.contains('dark');
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+
+            // Gráfico de Líneas / Histórico
+            cashflowChartInstance = new Chart(document.getElementById('cashflowChart'), {
+                type: 'line',
+                data: {
+                    labels: data.meses,
+                    datasets: [
+                        { label: 'Ingresos ($)', data: data.ingresosMes, borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.1)', fill: true, tension: 0.3 },
+                        { label: 'Egresos ($)', data: data.egresosMes, borderColor: '#f43f5e', backgroundColor: 'rgba(244, 63, 94, 0.1)', fill: true, tension: 0.3 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: textColor } } },
+                    scales: {
+                        x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                        y: { ticks: { color: textColor }, grid: { color: gridColor } }
+                    }
+                }
+            });
+
+            // Gráfico de Donas / Cumplimiento
+            const alDiaCount = data.alumnos.filter(a => a.alDia).length;
+            const pendientesCount = data.alumnos.length - alDiaCount;
+
+            cuotasPieChartInstance = new Chart(document.getElementById('cuotasPieChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Al Día', 'Pendientes'],
+                    datasets: [{
+                        data: [alDiaCount, pendientesCount],
+                        backgroundColor: ['#10b981', '#f43f5e']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: textColor } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
