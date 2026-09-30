@@ -180,14 +180,14 @@
                     <input type="text" id="searchInput" onkeyup="filterStudentsTable()" placeholder="Buscar alumno..." class="w-full sm:w-64 px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none">
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[500px]">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[700px]">
                         <thead>
-                            <tr class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
-                                <th class="px-4 sm:px-6 py-3 font-semibold">N°</th>
-                                <th class="px-4 sm:px-6 py-3 font-semibold">Alumno / Apoderado</th>
-                                <th class="px-4 sm:px-6 py-3 font-semibold text-center">Estado</th>
-                                <th class="px-4 sm:px-6 py-3 font-semibold text-right">Monto Pagado</th>
-                                <th class="px-4 sm:px-6 py-3 font-semibold text-right">Saldo Pendiente</th>
+                            <tr id="studentsTableHeader" class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
+                                <th class="px-3 sm:px-4 py-3 font-semibold">N°</th>
+                                <th class="px-3 sm:px-4 py-3 font-semibold min-w-[160px]">Alumno / Apoderado</th>
+                                <th class="px-3 sm:px-4 py-3 font-semibold text-center">Estado</th>
+                                <th class="px-3 sm:px-4 py-3 font-semibold text-right">Total Pagado</th>
+                                <th class="px-3 sm:px-4 py-3 font-semibold text-right text-rose-600 dark:text-rose-400">Debe (Pendiente)</th>
                             </tr>
                         </thead>
                         <tbody id="studentsTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
@@ -343,6 +343,34 @@
             return parseFloat((val || '').toString().replace(/[^0-9]/g, '')) || 0; 
         }
 
+        // Analizador de CSV para manejo de comillas y separadores
+        function parseCSVLines(text) {
+            const lines = text.split(/\r?\n/);
+            return lines.map(line => {
+                const cells = [];
+                let current = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        if (inQuotes && line[i + 1] === '"') {
+                            current += '"';
+                            i++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        cells.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                cells.push(current.trim());
+                return cells;
+            });
+        }
+
         async function fetchLiveData() {
             const selectedPeriod = document.getElementById('periodSelector').value;
             const CSV_URL = PERIODS_DATABASE[selectedPeriod];
@@ -398,28 +426,75 @@
             let ingresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0];
             let egresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-            const lines = csvText.split('\n');
+            const rows = parseCSVLines(csvText);
+            if (rows.length === 0) return { saldoTotal: 0, totalCuotas: 0, totalOtrosIngresos: 0, totalEgresos: 0, alumnos: [], meses, ingresosMes, egresosMes, monthHeaders: [] };
 
-            lines.forEach((line, index) => {
-                let cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-                if (cols.length < 3) return;
+            // Buscar la fila de encabezados dinámicamente
+            let headerRowIndex = rows.findIndex(row => row.some(cell => cell.toLowerCase().includes('alumno') || cell.toLowerCase().includes('nombre')));
+            if (headerRowIndex === -1) headerRowIndex = 0;
 
-                // Ejemplo de estructura de parseo adaptable a la planilla del curso
-                let nombre = cols[1];
-                let pagado = cleanNumber(cols[2]);
-                let pendiente = cleanNumber(cols[3]);
+            const headers = rows[headerRowIndex].map(h => h.trim());
+            const headersLower = headers.map(h => h.toLowerCase());
 
-                if (nombre && index > 0 && !nombre.toLowerCase().includes('total')) {
-                    alumnos.push({
-                        id: index,
-                        nombre: nombre,
-                        pagado: pagado,
-                        pendiente: pendiente,
-                        alDia: pendiente === 0
-                    });
-                    totalCuotas += pagado;
+            // Identificar índices de columnas clave
+            const nameIdx = headersLower.findIndex(h => h.includes('alumno') || h.includes('nombre'));
+            const totalPagadoIdx = headersLower.findIndex(h => h.includes('total pagado') || h.includes('pagado') || h.includes('haber'));
+            const debeIdx = headersLower.findIndex(h => h.includes('debe') || h.includes('pendiente') || h.includes('saldo'));
+
+            // Identificar columnas de meses / aportes
+            const knownMonths = ['marzo', 'mar', 'abril', 'abr', 'mayo', 'may', 'junio', 'jun', 'julio', 'jul', 'agosto', 'ago', 'septiembre', 'sep', 'octubre', 'oct', 'noviembre', 'nov', 'diciembre', 'dic', 'matricula', 'matrícula'];
+            
+            let monthColumns = [];
+            headers.forEach((h, idx) => {
+                const hl = h.toLowerCase();
+                if (idx !== nameIdx && idx !== totalPagadoIdx && idx !== debeIdx && idx !== 0) {
+                    if (knownMonths.some(m => hl.includes(m)) || hl.includes('cuota') || hl.includes('aporte')) {
+                        monthColumns.push({ index: idx, name: h });
+                    }
                 }
             });
+
+            if (monthColumns.length === 0 && nameIdx !== -1) {
+                const maxIndex = totalPagadoIdx !== -1 ? totalPagadoIdx : (debeIdx !== -1 ? debeIdx : headers.length);
+                for (let i = nameIdx + 1; i < maxIndex; i++) {
+                    if (headers[i]) {
+                        monthColumns.push({ index: i, name: headers[i] });
+                    }
+                }
+            }
+
+            // Procesar las filas de alumnos
+            for (let i = headerRowIndex + 1; i < rows.length; i++) {
+                const cols = rows[i];
+                if (!cols || cols.length < 2) continue;
+
+                const nombre = nameIdx !== -1 ? cols[nameIdx] : cols[1];
+                if (!nombre || nombre.toLowerCase().includes('total') || nombre.toLowerCase().includes('resumen')) continue;
+
+                let pagado = totalPagadoIdx !== -1 ? cleanNumber(cols[totalPagadoIdx]) : 0;
+                let pendiente = debeIdx !== -1 ? cleanNumber(cols[debeIdx]) : 0;
+
+                // Extraer el desglose por mes/aporte
+                let mensualidades = {};
+                monthColumns.forEach(m => {
+                    mensualidades[m.name] = cleanNumber(cols[m.index]);
+                });
+
+                if (totalPagadoIdx === -1 && monthColumns.length > 0) {
+                    pagado = Object.values(mensualidades).reduce((acc, v) => acc + v, 0);
+                }
+
+                alumnos.push({
+                    id: alumnos.length + 1,
+                    nombre: nombre,
+                    pagado: pagado,
+                    pendiente: pendiente,
+                    alDia: pendiente === 0,
+                    mensualidades: mensualidades
+                });
+
+                totalCuotas += pagado;
+            }
 
             let saldoTotal = (totalCuotas + totalOtrosIngresos) - totalEgresos;
 
@@ -431,7 +506,8 @@
                 alumnos,
                 meses,
                 ingresosMes,
-                egresosMes
+                egresosMes,
+                monthHeaders: monthColumns.map(m => m.name)
             };
         }
 
@@ -466,18 +542,39 @@
                 document.getElementById('kpiEgresosCard').style.display = 'block';
                 document.getElementById('studentsTableCard').style.display = 'block';
 
-                renderStudentsTable(activeAlumnos);
+                renderStudentsTable(activeAlumnos, data.monthHeaders || []);
             }
 
             renderCharts(data, isApoderado);
         }
 
-        function renderStudentsTable(alumnos) {
+        function renderStudentsTable(alumnos, monthHeaders) {
+            const headerRow = document.getElementById('studentsTableHeader');
             const tbody = document.getElementById('studentsTableBody');
+
+            // Encabezados dinámicos con meses/aportes
+            let headerHTML = `
+                <th class="px-3 sm:px-4 py-3 font-semibold">N°</th>
+                <th class="px-3 sm:px-4 py-3 font-semibold min-w-[160px]">Alumno / Apoderado</th>
+                <th class="px-3 sm:px-4 py-3 font-semibold text-center">Estado</th>
+            `;
+
+            monthHeaders.forEach(m => {
+                headerHTML += `<th class="px-3 sm:px-4 py-3 font-semibold text-center whitespace-nowrap">${m}</th>`;
+            });
+
+            headerHTML += `
+                <th class="px-3 sm:px-4 py-3 font-semibold text-right">Total Pagado</th>
+                <th class="px-3 sm:px-4 py-3 font-semibold text-right text-rose-600 dark:text-rose-400">Debe (Pendiente)</th>
+            `;
+            headerRow.innerHTML = headerHTML;
+
+            // Filas
             tbody.innerHTML = '';
 
             if (alumnos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-6 text-center text-slate-400">No se encontraron registros.</td></tr>';
+                const totalCols = 5 + monthHeaders.length;
+                tbody.innerHTML = `<tr><td colspan="${totalCols}" class="px-6 py-6 text-center text-slate-400">No se encontraron registros.</td></tr>`;
                 return;
             }
 
@@ -486,15 +583,27 @@
                     ? '<span class="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded font-semibold text-[11px]">Al Día</span>'
                     : '<span class="px-2 py-0.5 bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 rounded font-semibold text-[11px]">Pendiente</span>';
 
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="px-4 sm:px-6 py-3.5 text-slate-400">${idx + 1}</td>
-                        <td class="px-4 sm:px-6 py-3.5 font-medium text-slate-800 dark:text-slate-200">${a.nombre}</td>
-                        <td class="px-4 sm:px-6 py-3.5 text-center">${statusBadge}</td>
-                        <td class="px-4 sm:px-6 py-3.5 text-right font-bold text-slate-900 dark:text-white">${formatCLP(a.pagado)}</td>
-                        <td class="px-4 sm:px-6 py-3.5 text-right font-medium text-slate-500 dark:text-slate-400">${formatCLP(a.pendiente)}</td>
+                let rowHTML = `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                        <td class="px-3 sm:px-4 py-3.5 text-slate-400">${idx + 1}</td>
+                        <td class="px-3 sm:px-4 py-3.5 font-medium text-slate-800 dark:text-slate-200">${a.nombre}</td>
+                        <td class="px-3 sm:px-4 py-3.5 text-center">${statusBadge}</td>
+                `;
+
+                monthHeaders.forEach(m => {
+                    const montoMes = a.mensualidades ? (a.mensualidades[m] || 0) : 0;
+                    const displayMonto = montoMes > 0 
+                        ? `<span class="font-medium text-emerald-600 dark:text-emerald-400">${formatCLP(montoMes)}</span>` 
+                        : `<span class="text-slate-300 dark:text-slate-600">-</span>`;
+                    rowHTML += `<td class="px-3 sm:px-4 py-3.5 text-center whitespace-nowrap text-xs">${displayMonto}</td>`;
+                });
+
+                rowHTML += `
+                        <td class="px-3 sm:px-4 py-3.5 text-right font-bold text-slate-900 dark:text-white">${formatCLP(a.pagado)}</td>
+                        <td class="px-3 sm:px-4 py-3.5 text-right font-bold ${a.pendiente > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}">${formatCLP(a.pendiente)}</td>
                     </tr>
                 `;
+                tbody.innerHTML += rowHTML;
             });
         }
 
@@ -502,7 +611,7 @@
             const query = document.getElementById('searchInput').value.toLowerCase();
             if (!window.lastProcessedData) return;
             const filtered = window.lastProcessedData.alumnos.filter(a => a.nombre.toLowerCase().includes(query));
-            renderStudentsTable(filtered);
+            renderStudentsTable(filtered, window.lastProcessedData.monthHeaders || []);
         }
 
         function renderCharts(data, isApoderado) {
