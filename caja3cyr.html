@@ -18,7 +18,15 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Inter', sans-serif; } </style>
+    <style> 
+        body { font-family: 'Inter', sans-serif; } 
+        /* Regla de soporte para fijar la primera columna en scroll horizontal */
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+    </style>
 </head>
 <body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-200">
 
@@ -134,13 +142,13 @@
                     <input type="text" id="searchInput" onkeyup="filterStudentsTable()" placeholder="Buscar alumno..." class="w-full sm:w-64 px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none">
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[700px]">
+                    <table class="w-full text-left border-collapse text-xs min-w-full">
                         <thead>
                             <tr id="studentsTableHeader" class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
-                                <th class="px-3 sm:px-4 py-3 font-semibold">N°</th>
-                                <th class="px-3 sm:px-4 py-3 font-semibold min-w-[160px]">Alumno / Apoderado</th>
-                                <th class="px-3 sm:px-4 py-3 font-semibold text-right">Total Pagado</th>
-                                <th class="px-3 sm:px-4 py-3 font-semibold text-right text-rose-600 dark:text-rose-400">Debe (Pendiente)</th>
+                                <th class="px-2 py-3 font-semibold text-center w-10">N°</th>
+                                <th class="px-3 py-3 font-semibold sticky-col bg-slate-50 dark:bg-slate-800 min-w-[180px]">Alumno / Apoderado</th>
+                                <th class="px-3 py-3 font-semibold text-right whitespace-nowrap">Total Pagado</th>
+                                <th class="px-3 py-3 font-semibold text-right text-rose-600 dark:text-rose-400 whitespace-nowrap">Debe (Pendiente)</th>
                             </tr>
                         </thead>
                         <tbody id="studentsTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
@@ -302,10 +310,10 @@
             let totalEgresos = 0;
             let alumnos = [];
             
-            // Meses a mapear en el gráfico
-            let meses = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov'];
-            let ingresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-            let egresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+            // Meses a mapear en el gráfico (Marzo a Diciembre)
+            let meses = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            let ingresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            let egresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
             const rows = parseCSVLines(csvText);
             if (rows.length === 0) return { saldoTotal: 0, totalCuotas: 0, totalOtrosIngresos: 0, totalEgresos: 0, alumnos: [], meses, ingresosMes, egresosMes, monthHeaders: [] };
@@ -410,17 +418,17 @@
             const tbody = document.getElementById('studentsTableBody');
 
             let headerHTML = `
-                <th class="px-3 sm:px-4 py-3 font-semibold">N°</th>
-                <th class="px-3 sm:px-4 py-3 font-semibold min-w-[160px]">Alumno / Apoderado</th>
+                <th class="px-2 py-3 font-semibold text-center w-10">N°</th>
+                <th class="px-3 py-3 font-semibold sticky-col bg-slate-50 dark:bg-slate-800 min-w-[180px]">Alumno / Apoderado</th>
             `;
 
             monthHeaders.forEach(m => {
-                headerHTML += `<th class="px-3 sm:px-4 py-3 font-semibold text-center whitespace-nowrap">${m}</th>`;
+                headerHTML += `<th class="px-2 py-3 font-semibold text-center whitespace-nowrap">${m}</th>`;
             });
 
             headerHTML += `
-                <th class="px-3 sm:px-4 py-3 font-semibold text-right">Total Pagado</th>
-                <th class="px-3 sm:px-4 py-3 font-semibold text-right text-rose-600 dark:text-rose-400">Debe (Pendiente)</th>
+                <th class="px-3 py-3 font-semibold text-right whitespace-nowrap">Total Pagado</th>
+                <th class="px-3 py-3 font-semibold text-right text-rose-600 dark:text-rose-400 whitespace-nowrap">Debe (Pendiente)</th>
             `;
 
             headerRow.innerHTML = headerHTML;
@@ -433,16 +441,16 @@
             tbody.innerHTML = alumnos.map((a, idx) => {
                 let monthCells = monthHeaders.map(m => {
                     const val = a.mensualidades[m] || 0;
-                    return `<td class="px-3 sm:px-4 py-3.5 text-center text-slate-500 font-mono">${val > 0 ? formatCLP(val) : '-'}</td>`;
+                    return `<td class="px-2 py-3 text-center text-slate-500 dark:text-slate-400 font-mono text-[11px]">${val > 0 ? formatCLP(val) : '-'}</td>`;
                 }).join('');
 
                 return `
                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                        <td class="px-3 sm:px-4 py-3.5 font-medium text-slate-400">${idx + 1}</td>
-                        <td class="px-3 sm:px-4 py-3.5 font-medium text-slate-900 dark:text-white">${a.nombre}</td>
+                        <td class="px-2 py-3 font-medium text-slate-400 text-center">${idx + 1}</td>
+                        <td class="px-3 py-3 font-semibold text-slate-900 dark:text-white sticky-col bg-white dark:bg-slate-800 whitespace-nowrap overflow-hidden text-ellipsis">${a.nombre}</td>
                         ${monthCells}
-                        <td class="px-3 sm:px-4 py-3.5 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCLP(a.pagado)}</td>
-                        <td class="px-3 sm:px-4 py-3.5 text-right font-semibold ${a.pendiente > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}">${formatCLP(a.pendiente)}</td>
+                        <td class="px-3 py-3 text-right font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap">${formatCLP(a.pagado)}</td>
+                        <td class="px-3 py-3 text-right font-semibold whitespace-nowrap ${a.pendiente > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}">${formatCLP(a.pendiente)}</td>
                     </tr>
                 `;
             }).join('');
