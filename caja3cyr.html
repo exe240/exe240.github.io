@@ -11,6 +11,7 @@
     </script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style> 
@@ -82,8 +83,9 @@
 
             <!-- Tabla Alumnos -->
             <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-700">
+                <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Estado de Cuotas por Alumno</h3>
+                    <input type="text" id="searchInput" onkeyup="filterStudentsTable()" placeholder="Buscar alumno..." class="w-full sm:w-64 px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none">
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs min-w-full">
@@ -98,10 +100,7 @@
     </div>
 
     <script>
-        // URL de la pestaña "Cuotas"
         const CUOTAS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlL2qIB_EBDKk_hzeSlZQu__lwU1_MEOgv5_T5rQJWot0Apr-qa_pTAWZnigQRzmJy_tBZymbsooAU/pub?output=csv";
-        
-        // Coloca aquí la URL publicada como CSV de la pestaña "Caja"
         const CAJA_CSV_URL = ""; 
 
         let cashflowChartInstance = null;
@@ -146,6 +145,8 @@
         }
 
         async function fetchLiveData() {
+            const icon = document.getElementById('syncIcon');
+            if (icon) icon.classList.add('fa-spin');
             try {
                 const resCuotas = await fetch(CUOTAS_CSV_URL + "&_t=" + Date.now());
                 const csvCuotas = await resCuotas.text();
@@ -161,6 +162,8 @@
                 renderDashboard(parsedData);
             } catch (err) {
                 console.error("Error al cargar datos:", err);
+            } finally {
+                if (icon) icon.classList.remove('fa-spin');
             }
         }
 
@@ -176,27 +179,42 @@
 
             // 1. Procesar Cuotas
             const rowsCuotas = parseCSVLines(csvCuotasText);
-            let headerIdx = rowsCuotas.findIndex(r => r.some(c => c.toLowerCase().includes('alumno')));
+            
+            // Buscar la fila de encabezados
+            let headerIdx = rowsCuotas.findIndex(r => r.some(c => {
+                const l = c.toLowerCase();
+                return l.includes('alumno') || l.includes('apellidos') || l.includes('nombre');
+            }));
             if (headerIdx === -1) headerIdx = 0;
 
             const headers = rowsCuotas[headerIdx].map(h => h.trim());
             const headersLower = headers.map(h => h.toLowerCase());
-            const nameIdx = headersLower.findIndex(h => h.includes('alumno'));
-            const totalPagadoIdx = headersLower.findIndex(h => h.includes('total pagado'));
-            const debeIdx = headersLower.findIndex(h => h.includes('debe'));
+
+            // Identificar índices de nombre y datos generales
+            let nameIdx = headersLower.findIndex(h => h.includes('apellidos') || h.includes('nombre'));
+            if (nameIdx === -1) nameIdx = headersLower.findIndex(h => h.includes('alumno'));
+            if (nameIdx === -1) nameIdx = 1;
+
+            const totalPagadoIdx = headersLower.findIndex(h => h.includes('total pagado') || (h.includes('total') && !h.includes('gastos')));
+            const debeIdx = headersLower.findIndex(h => h.includes('debe') || h.includes('pendiente'));
+
+            const knownMonths = ['marzo', 'mar', 'abril', 'abr', 'mayo', 'may', 'junio', 'jun', 'julio', 'jul', 'agosto', 'ago', 'septiembre', 'sep', 'octubre', 'oct', 'noviembre', 'nov', 'diciembre', 'dic'];
 
             let monthColumns = [];
             headers.forEach((h, idx) => {
-                if (idx !== nameIdx && idx !== totalPagadoIdx && idx !== debeIdx && idx !== 0) {
+                const hl = h.toLowerCase();
+                // Excluir columnas que no corresponden a meses
+                if (knownMonths.some(m => hl.includes(m))) {
                     monthColumns.push({ index: idx, name: h });
                 }
             });
 
             for (let i = headerIdx + 1; i < rowsCuotas.length; i++) {
                 const cols = rowsCuotas[i];
-                if (!cols || cols.length < 2) continue;
+                if (!cols || cols.length <= nameIdx) continue;
+
                 const nombre = cols[nameIdx];
-                if (!nombre || nombre.toLowerCase().includes('total')) continue;
+                if (!nombre || nombre.trim() === '' || nombre.toLowerCase().includes('total') || nombre.toLowerCase().includes('gastos')) continue;
 
                 let pagado = totalPagadoIdx !== -1 ? cleanNumber(cols[totalPagadoIdx]) : 0;
                 let pendiente = debeIdx !== -1 ? cleanNumber(cols[debeIdx]) : 0;
@@ -205,17 +223,24 @@
                 monthColumns.forEach(m => {
                     const montoMes = cleanNumber(cols[m.index]);
                     mensualidades[m.name] = montoMes;
+                    
                     const nameLower = m.name.toLowerCase();
-                    meses.forEach((mesLabel, idx) => {
-                        if (nameLower.includes(mesLabel.toLowerCase())) ingresosMes[idx] += montoMes;
+                    meses.forEach((mesLabel, mIdx) => {
+                        if (nameLower.includes(mesLabel.toLowerCase())) {
+                            ingresosMes[mIdx] += montoMes;
+                        }
                     });
                 });
+
+                if (totalPagadoIdx === -1) {
+                    pagado = Object.values(mensualidades).reduce((acc, v) => acc + v, 0);
+                }
 
                 alumnos.push({ id: alumnos.length + 1, nombre, pagado, pendiente, mensualidades });
                 totalCuotas += pagado;
             }
 
-            // 2. Procesar pestaña Caja (si está conectada o según los datos conocidos de la hoja)
+            // 2. Procesar pestaña Caja
             if (csvCajaText) {
                 const rowsCaja = parseCSVLines(csvCajaText);
                 rowsCaja.forEach(row => {
@@ -224,17 +249,14 @@
                     const itemEgreso = row[4] || '';
                     const montoEgreso = cleanNumber(row[6]);
 
-                    if (itemIngreso && itemIngreso.toLowerCase() !== 'ingreso' && itemIngreso.toLowerCase() !== 'total' && itemIngreso.toLowerCase() !== 'cuotas') {
+                    if (itemIngreso && !itemIngreso.toLowerCase().includes('ingreso') && !itemIngreso.toLowerCase().includes('total') && !itemIngreso.toLowerCase().includes('cuotas')) {
                         totalOtrosIngresos += montoIngreso;
                     }
-                    if (itemEgreso && itemEgreso.toLowerCase() !== 'egreso' && itemEgreso.toLowerCase() !== 'total') {
+                    if (itemEgreso && !itemEgreso.toLowerCase().includes('egreso') && !itemEgreso.toLowerCase().includes('total')) {
                         totalEgresos += montoEgreso;
                     }
                 });
             } else {
-                // Si la pestaña Caja aún no tiene enlace CSV publicado, tomamos los valores visibles en la hoja:
-                // Ingresos extra: Caja Inicial ($120.000) + Hotwheels ($30.000) + Completada ($120.000) + Reunión ($40.000) = $310.000
-                // Egresos: Compra autos ($10.000)
                 totalOtrosIngresos = 310000;
                 totalEgresos = 10000;
             }
@@ -262,7 +284,7 @@
 
             let headerHTML = `
                 <th class="px-2 py-3 font-semibold text-center w-10">N°</th>
-                <th class="px-3 py-3 font-semibold sticky-col bg-slate-50 dark:bg-slate-800 min-w-[180px]">Alumno / Apoderado</th>
+                <th class="px-3 py-3 font-semibold sticky-col bg-slate-50 dark:bg-slate-800 min-w-[200px]">Alumno / Apoderado</th>
             `;
             monthHeaders.forEach(m => headerHTML += `<th class="px-2 py-3 font-semibold text-center whitespace-nowrap">${m}</th>`);
             headerHTML += `
@@ -270,6 +292,11 @@
                 <th class="px-3 py-3 font-semibold text-right text-rose-600 dark:text-rose-400 whitespace-nowrap">Debe (Pendiente)</th>
             `;
             headerRow.innerHTML = headerHTML;
+
+            if (alumnos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${4 + monthHeaders.length}" class="px-6 py-8 text-center text-slate-400">No se encontraron registros de alumnos.</td></tr>`;
+                return;
+            }
 
             tbody.innerHTML = alumnos.map((a, idx) => {
                 let monthCells = monthHeaders.map(m => {
@@ -289,6 +316,25 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        function filterStudentsTable() {
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            const tbody = document.getElementById('studentsTableBody');
+            const rows = tbody.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const tdName = rows[i].getElementsByTagName('td')[1];
+                if (tdName) {
+                    const txtValue = tdName.textContent || tdName.innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        rows[i].style.display = "";
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }
+            }
         }
 
         function renderCharts(data) {
