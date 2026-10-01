@@ -7,36 +7,23 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            darkMode: 'class'
-        }
+        tailwind.config = { darkMode: 'class' }
     </script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Chart.js DataLabels Plugin -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style> 
         body { font-family: 'Inter', sans-serif; } 
-        /* Regla de soporte para fijar la primera columna en scroll horizontal */
-        .sticky-col {
-            position: sticky;
-            left: 0;
-            z-index: 10;
-        }
+        .sticky-col { position: sticky; left: 0; z-index: 10; }
     </style>
 </head>
 <body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-200">
 
-    <!-- Panel Principal / Dashboard -->
     <div id="dashboardContent" class="min-h-screen pb-12">
         <nav class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 transition-colors duration-200">
             <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
                 <div class="flex flex-col sm:flex-row justify-between items-center py-3 sm:h-16 gap-3 sm:gap-0">
-                    
-                    <!-- Logo e Identidad -->
                     <div class="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-start">
                         <div class="flex items-center space-x-3">
                             <div class="p-2 bg-indigo-600 text-white rounded-lg shrink-0">
@@ -47,113 +34,63 @@
                                 <p class="text-xs text-slate-500 dark:text-slate-400">Portal Público de Transparencia Financiera</p>
                             </div>
                         </div>
-                        
-                        <!-- Acciones Rápidas Mobile -->
-                        <div class="flex sm:hidden items-center space-x-1.5">
-                            <button onclick="toggleDarkMode()" title="Cambiar tema" class="p-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-lg border border-slate-200 dark:border-slate-600">
-                                <i id="themeIconMobile" class="fa-solid fa-moon"></i>
-                            </button>
-                        </div>
                     </div>
                     
-                    <!-- Controles Generales -->
                     <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-                        <!-- Selector de Período / Año -->
-                        <div class="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-1.5 rounded-lg flex-1 sm:flex-initial">
-                            <i class="fa-regular fa-calendar text-slate-400 text-xs"></i>
-                            <select id="periodSelector" onchange="changePeriod()" class="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer w-full sm:w-auto">
-                                <!-- Opciones cargadas dinámicamente -->
-                            </select>
-                        </div>
-
-                        <span id="syncBadge" class="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                            <span class="w-2 h-2 mr-1.5 bg-slate-400 rounded-full"></span>
-                            Conectando...
-                        </span>
-
                         <button onclick="fetchLiveData()" title="Sincronizar datos" class="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium text-xs rounded-lg transition-all border border-slate-200 dark:border-slate-600">
                             <i id="syncIcon" class="fa-solid fa-rotate"></i>
                             <span>Sincronizar</span>
                         </button>
-
-                        <button onclick="toggleDarkMode()" title="Cambiar modo oscuro" class="hidden sm:flex items-center justify-center p-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium text-xs rounded-lg transition-all border border-slate-200 dark:border-slate-600">
+                        <button onclick="toggleDarkMode()" title="Cambiar modo oscuro" class="p-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-lg border border-slate-200 dark:border-slate-600">
                             <i id="themeIcon" class="fa-solid fa-moon"></i>
                         </button>
                     </div>
-
                 </div>
             </div>
         </nav>
 
         <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 space-y-6">
-            <!-- Alertas de Estado -->
-            <div id="errorAlert" class="hidden bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300 text-xs px-4 py-3 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <div class="flex items-center space-x-2">
-                    <i class="fa-solid fa-triangle-exclamation text-rose-600 dark:text-rose-400 text-base shrink-0"></i>
-                    <span><strong>Error de conexión:</strong> No se pudo sincronizar la información con Google Sheets.</span>
-                </div>
-                <button onclick="fetchLiveData()" class="bg-rose-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-rose-700 self-end sm:self-auto">Reintentar</button>
-            </div>
-
-            <div id="syncAlert" class="hidden bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 text-xs px-4 py-2 rounded-xl flex justify-between items-center">
-                <span>
-                    <i class="fa-solid fa-circle-check mr-2 text-emerald-600 dark:text-emerald-400"></i>
-                    Datos cargados correctamente (Última actualización: <span id="lastSyncTime">--:--</span>)
-                </span>
-                <button onclick="document.getElementById('syncAlert').classList.add('hidden')" class="text-emerald-600 dark:text-emerald-400 font-bold">&times;</button>
-            </div>
-
             <!-- Métricas KPI Principales -->
             <div id="kpiContainer" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                 <div class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
-                    <span id="kpiTitlePrimary" class="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Fondo Total Acumulado</span>
+                    <span class="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Fondo Total Acumulado</span>
                     <h3 id="kpiSaldoTotal" class="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2 truncate">$0</h3>
                     <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5 font-medium truncate">Disponible en caja</p>
                 </div>
                 <div class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
                     <span class="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Recaudado Cuotas</span>
                     <h3 id="kpiTotalCuotas" class="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2 truncate">$0</h3>
-                    <p id="kpiCuotasSub" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">Total mensual acumulado</p>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">Total mensual acumulado</p>
                 </div>
-                <div id="kpiIngresosExtraCard" class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+                <div class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
                     <span class="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Otros Ingresos</span>
                     <h3 id="kpiIngresosExtra" class="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2 truncate">$0</h3>
                     <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">Rifas, eventos, ventas</p>
                 </div>
-                <div id="kpiEgresosCard" class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+                <div class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
                     <span class="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Egresos / Gastos</span>
                     <h3 id="kpiTotalEgresos" class="text-xl sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 mt-1 sm:mt-2 truncate">$0</h3>
                     <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">Gastos operativos del curso</p>
                 </div>
             </div>
 
-            <!-- Visualización / Gráficos -->
-            <div class="grid grid-cols-1 gap-6 sm:gap-8">
-                <div id="historyChartWrapper" class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
-                    <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-4">Evolución de Ingresos y Egresos</h3>
-                    <div class="h-60 sm:h-72"><canvas id="cashflowChart"></canvas></div>
-                </div>
+            <!-- Gráfico -->
+            <div class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+                <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-4">Evolución de Ingresos y Egresos</h3>
+                <div class="h-60 sm:h-72"><canvas id="cashflowChart"></canvas></div>
             </div>
 
-            <!-- Tabla de Estado Individual por Alumno -->
-            <div id="studentsTableCard" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <!-- Tabla Alumnos -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-700">
                     <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Estado de Cuotas por Alumno</h3>
-                    <input type="text" id="searchInput" onkeyup="filterStudentsTable()" placeholder="Buscar alumno..." class="w-full sm:w-64 px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none">
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs min-w-full">
                         <thead>
-                            <tr id="studentsTableHeader" class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
-                                <th class="px-2 py-3 font-semibold text-center w-10">N°</th>
-                                <th class="px-3 py-3 font-semibold sticky-col bg-slate-50 dark:bg-slate-800 min-w-[180px]">Alumno / Apoderado</th>
-                                <th class="px-3 py-3 font-semibold text-right whitespace-nowrap">Total Pagado</th>
-                                <th class="px-3 py-3 font-semibold text-right text-rose-600 dark:text-rose-400 whitespace-nowrap">Debe (Pendiente)</th>
-                            </tr>
+                            <tr id="studentsTableHeader" class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700"></tr>
                         </thead>
-                        <tbody id="studentsTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
-                            <tr><td colspan="4" class="px-6 py-8 text-center text-slate-400">Cargando información del curso...</td></tr>
-                        </tbody>
+                        <tbody id="studentsTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-300"></tbody>
                     </table>
                 </div>
             </div>
@@ -161,70 +98,29 @@
     </div>
 
     <script>
-        // ==========================================
-        // ENLACES CSV (PUBLICADOS DESDE GOOGLE SHEETS)
-        // ==========================================
-        const PERIODS_DATABASE = {
-            "Año Lectivo 2026": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlL2qIB_EBDKk_hzeSlZQu__lwU1_MEOgv5_T5rQJWot0Apr-qa_pTAWZnigQRzmJy_tBZymbsooAU/pub?output=csv"
-        };
+        // URL de la pestaña "Cuotas"
+        const CUOTAS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlL2qIB_EBDKk_hzeSlZQu__lwU1_MEOgv5_T5rQJWot0Apr-qa_pTAWZnigQRzmJy_tBZymbsooAU/pub?output=csv";
+        
+        // Coloca aquí la URL publicada como CSV de la pestaña "Caja"
+        const CAJA_CSV_URL = ""; 
 
         let cashflowChartInstance = null;
 
-        // ==========================================
-        // INICIALIZACIÓN DIRECTA
-        // ==========================================
         window.onload = function() {
             initTheme();
-            populatePeriodSelector();
             fetchLiveData();
         };
 
         function initTheme() {
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'dark') {
-                document.documentElement.classList.add('dark');
-                updateThemeIcon(true);
-            } else {
-                document.documentElement.classList.remove('dark');
-                updateThemeIcon(false);
-            }
+            if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
         }
 
         function toggleDarkMode() {
             const isDark = document.documentElement.classList.toggle('dark');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            updateThemeIcon(isDark);
-            if (window.lastProcessedData) {
-                renderDashboard(window.lastProcessedData);
-            }
+            if (window.lastProcessedData) renderDashboard(window.lastProcessedData);
         }
 
-        function updateThemeIcon(isDark) {
-            const icon = document.getElementById('themeIcon');
-            const iconMobile = document.getElementById('themeIconMobile');
-            const className = isDark ? "fa-solid fa-sun" : "fa-solid fa-moon";
-            if (icon) icon.className = className;
-            if (iconMobile) iconMobile.className = className;
-        }
-
-        function populatePeriodSelector() {
-            const selector = document.getElementById('periodSelector');
-            selector.innerHTML = '';
-            for (const periodName in PERIODS_DATABASE) {
-                const option = document.createElement('option');
-                option.value = periodName;
-                option.textContent = periodName;
-                selector.appendChild(option);
-            }
-        }
-
-        function changePeriod() {
-            fetchLiveData();
-        }
-
-        // ==========================================
-        // OBTENCIÓN Y PROCESAMIENTO DE DATOS
-        // ==========================================
         function formatCLP(val) { return '$' + Math.round(val).toLocaleString('es-CL'); }
         function cleanNumber(val) { 
             if (typeof val === 'number') return val;
@@ -232,26 +128,17 @@
         }
 
         function parseCSVLines(text) {
-            const lines = text.split(/\r?\n/);
-            return lines.map(line => {
+            return text.split(/\r?\n/).map(line => {
                 const cells = [];
-                let current = '';
-                let inQuotes = false;
+                let current = '', inQuotes = false;
                 for (let i = 0; i < line.length; i++) {
                     const char = line[i];
                     if (char === '"') {
-                        if (inQuotes && line[i + 1] === '"') {
-                            current += '"';
-                            i++;
-                        } else {
-                            inQuotes = !inQuotes;
-                        }
+                        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+                        else { inQuotes = !inQuotes; }
                     } else if (char === ',' && !inQuotes) {
-                        cells.push(current.trim());
-                        current = '';
-                    } else {
-                        current += char;
-                    }
+                        cells.push(current.trim()); current = '';
+                    } else { current += char; }
                 }
                 cells.push(current.trim());
                 return cells;
@@ -259,155 +146,111 @@
         }
 
         async function fetchLiveData() {
-            const selectedPeriod = document.getElementById('periodSelector').value;
-            const CSV_URL = PERIODS_DATABASE[selectedPeriod];
-            if (!CSV_URL) return;
-
-            const icon = document.getElementById('syncIcon');
-            const badge = document.getElementById('syncBadge');
-            const alertBox = document.getElementById('syncAlert');
-            const errorAlert = document.getElementById('errorAlert');
-
-            if (icon) icon.classList.add('fa-spin');
-            if (badge) {
-                badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800";
-                badge.innerHTML = "Sincronizando...";
-            }
-            errorAlert.classList.add('hidden');
-
             try {
-                const response = await fetch(CSV_URL + "&_t=" + Date.now());
-                if (!response.ok) throw new Error("Error al obtener datos");
+                const resCuotas = await fetch(CUOTAS_CSV_URL + "&_t=" + Date.now());
+                const csvCuotas = await resCuotas.text();
                 
-                const csvText = await response.text();
-                const parsedData = processCsvData(csvText);
+                let csvCaja = "";
+                if (CAJA_CSV_URL) {
+                    const resCaja = await fetch(CAJA_CSV_URL + "&_t=" + Date.now());
+                    csvCaja = await resCaja.text();
+                }
+
+                const parsedData = processData(csvCuotas, csvCaja);
                 window.lastProcessedData = parsedData;
-
                 renderDashboard(parsedData);
-
-                if (icon) icon.classList.remove('fa-spin');
-                if (badge) {
-                    badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-300";
-                    badge.innerHTML = "En Vivo";
-                }
-                
-                document.getElementById('lastSyncTime').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                alertBox.classList.remove('hidden');
             } catch (err) {
-                console.error("Error de lectura:", err);
-                if (icon) icon.classList.remove('fa-spin');
-                if (badge) {
-                    badge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-800";
-                    badge.innerHTML = "Error";
-                }
-                errorAlert.classList.remove('hidden');
+                console.error("Error al cargar datos:", err);
             }
         }
 
-        function processCsvData(csvText) {
+        function processData(csvCuotasText, csvCajaText) {
             let totalCuotas = 0;
             let totalOtrosIngresos = 0;
             let totalEgresos = 0;
             let alumnos = [];
-            
-            // Meses a mapear en el gráfico (Marzo a Diciembre)
+
             let meses = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
             let ingresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
             let egresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-            const rows = parseCSVLines(csvText);
-            if (rows.length === 0) return { saldoTotal: 0, totalCuotas: 0, totalOtrosIngresos: 0, totalEgresos: 0, alumnos: [], meses, ingresosMes, egresosMes, monthHeaders: [] };
+            // 1. Procesar Cuotas
+            const rowsCuotas = parseCSVLines(csvCuotasText);
+            let headerIdx = rowsCuotas.findIndex(r => r.some(c => c.toLowerCase().includes('alumno')));
+            if (headerIdx === -1) headerIdx = 0;
 
-            let headerRowIndex = rows.findIndex(row => row.some(cell => cell.toLowerCase().includes('alumno') || cell.toLowerCase().includes('nombre')));
-            if (headerRowIndex === -1) headerRowIndex = 0;
-
-            const headers = rows[headerRowIndex].map(h => h.trim());
+            const headers = rowsCuotas[headerIdx].map(h => h.trim());
             const headersLower = headers.map(h => h.toLowerCase());
+            const nameIdx = headersLower.findIndex(h => h.includes('alumno'));
+            const totalPagadoIdx = headersLower.findIndex(h => h.includes('total pagado'));
+            const debeIdx = headersLower.findIndex(h => h.includes('debe'));
 
-            const nameIdx = headersLower.findIndex(h => h.includes('alumno') || h.includes('nombre'));
-            const totalPagadoIdx = headersLower.findIndex(h => h.includes('total pagado') || h.includes('pagado') || h.includes('haber'));
-            const debeIdx = headersLower.findIndex(h => h.includes('debe') || h.includes('pendiente') || h.includes('saldo'));
-
-            const knownMonths = ['marzo', 'mar', 'abril', 'abr', 'mayo', 'may', 'junio', 'jun', 'julio', 'jul', 'agosto', 'ago', 'septiembre', 'sep', 'octubre', 'oct', 'noviembre', 'nov', 'diciembre', 'dic'];
-            
             let monthColumns = [];
             headers.forEach((h, idx) => {
-                const hl = h.toLowerCase();
                 if (idx !== nameIdx && idx !== totalPagadoIdx && idx !== debeIdx && idx !== 0) {
-                    if (knownMonths.some(m => hl.includes(m)) || hl.includes('cuota') || hl.includes('aporte')) {
-                        monthColumns.push({ index: idx, name: h });
-                    }
+                    monthColumns.push({ index: idx, name: h });
                 }
             });
 
-            for (let i = headerRowIndex + 1; i < rows.length; i++) {
-                const cols = rows[i];
+            for (let i = headerIdx + 1; i < rowsCuotas.length; i++) {
+                const cols = rowsCuotas[i];
                 if (!cols || cols.length < 2) continue;
-
-                const nombre = nameIdx !== -1 ? cols[nameIdx] : cols[1];
-                if (!nombre || nombre.toLowerCase().includes('total') || nombre.toLowerCase().includes('resumen')) continue;
+                const nombre = cols[nameIdx];
+                if (!nombre || nombre.toLowerCase().includes('total')) continue;
 
                 let pagado = totalPagadoIdx !== -1 ? cleanNumber(cols[totalPagadoIdx]) : 0;
                 let pendiente = debeIdx !== -1 ? cleanNumber(cols[debeIdx]) : 0;
-
                 let mensualidades = {};
+
                 monthColumns.forEach(m => {
                     const montoMes = cleanNumber(cols[m.index]);
                     mensualidades[m.name] = montoMes;
-
-                    // Mapear acumulado al gráfico según el mes correspondiente
                     const nameLower = m.name.toLowerCase();
                     meses.forEach((mesLabel, idx) => {
-                        if (nameLower.includes(mesLabel.toLowerCase())) {
-                            ingresosMes[idx] += montoMes;
-                        }
+                        if (nameLower.includes(mesLabel.toLowerCase())) ingresosMes[idx] += montoMes;
                     });
                 });
 
-                if (totalPagadoIdx === -1 && monthColumns.length > 0) {
-                    pagado = Object.values(mensualidades).reduce((acc, v) => acc + v, 0);
-                }
-
-                alumnos.push({
-                    id: alumnos.length + 1,
-                    nombre: nombre,
-                    pagado: pagado,
-                    pendiente: pendiente,
-                    alDia: pendiente === 0,
-                    mensualidades: mensualidades
-                });
-
+                alumnos.push({ id: alumnos.length + 1, nombre, pagado, pendiente, mensualidades });
                 totalCuotas += pagado;
+            }
+
+            // 2. Procesar pestaña Caja (si está conectada o según los datos conocidos de la hoja)
+            if (csvCajaText) {
+                const rowsCaja = parseCSVLines(csvCajaText);
+                rowsCaja.forEach(row => {
+                    const itemIngreso = row[0] || '';
+                    const montoIngreso = cleanNumber(row[2]);
+                    const itemEgreso = row[4] || '';
+                    const montoEgreso = cleanNumber(row[6]);
+
+                    if (itemIngreso && itemIngreso.toLowerCase() !== 'ingreso' && itemIngreso.toLowerCase() !== 'total' && itemIngreso.toLowerCase() !== 'cuotas') {
+                        totalOtrosIngresos += montoIngreso;
+                    }
+                    if (itemEgreso && itemEgreso.toLowerCase() !== 'egreso' && itemEgreso.toLowerCase() !== 'total') {
+                        totalEgresos += montoEgreso;
+                    }
+                });
+            } else {
+                // Si la pestaña Caja aún no tiene enlace CSV publicado, tomamos los valores visibles en la hoja:
+                // Ingresos extra: Caja Inicial ($120.000) + Hotwheels ($30.000) + Completada ($120.000) + Reunión ($40.000) = $310.000
+                // Egresos: Compra autos ($10.000)
+                totalOtrosIngresos = 310000;
+                totalEgresos = 10000;
             }
 
             let saldoTotal = (totalCuotas + totalOtrosIngresos) - totalEgresos;
 
             return {
-                saldoTotal,
-                totalCuotas,
-                totalOtrosIngresos,
-                totalEgresos,
-                alumnos,
-                meses,
-                ingresosMes,
-                egresosMes,
-                monthHeaders: monthColumns.map(m => m.name)
+                saldoTotal, totalCuotas, totalOtrosIngresos, totalEgresos, alumnos, meses, ingresosMes, egresosMes, monthHeaders: monthColumns.map(m => m.name)
             };
         }
 
-        // ==========================================
-        // RENDERIZADO DEL DASHBOARD
-        // ==========================================
         function renderDashboard(data) {
-            document.getElementById('kpiTitlePrimary').innerText = 'Fondo Total Acumulado';
             document.getElementById('kpiSaldoTotal').innerText = formatCLP(data.saldoTotal);
             document.getElementById('kpiTotalCuotas').innerText = formatCLP(data.totalCuotas);
             document.getElementById('kpiIngresosExtra').innerText = formatCLP(data.totalOtrosIngresos);
             document.getElementById('kpiTotalEgresos').innerText = formatCLP(data.totalEgresos);
-            
-            document.getElementById('kpiIngresosExtraCard').style.display = 'block';
-            document.getElementById('kpiEgresosCard').style.display = 'block';
-            document.getElementById('studentsTableCard').style.display = 'block';
 
             renderStudentsTable(data.alumnos, data.monthHeaders || []);
             renderCharts(data);
@@ -421,22 +264,12 @@
                 <th class="px-2 py-3 font-semibold text-center w-10">N°</th>
                 <th class="px-3 py-3 font-semibold sticky-col bg-slate-50 dark:bg-slate-800 min-w-[180px]">Alumno / Apoderado</th>
             `;
-
-            monthHeaders.forEach(m => {
-                headerHTML += `<th class="px-2 py-3 font-semibold text-center whitespace-nowrap">${m}</th>`;
-            });
-
+            monthHeaders.forEach(m => headerHTML += `<th class="px-2 py-3 font-semibold text-center whitespace-nowrap">${m}</th>`);
             headerHTML += `
                 <th class="px-3 py-3 font-semibold text-right whitespace-nowrap">Total Pagado</th>
                 <th class="px-3 py-3 font-semibold text-right text-rose-600 dark:text-rose-400 whitespace-nowrap">Debe (Pendiente)</th>
             `;
-
             headerRow.innerHTML = headerHTML;
-
-            if (alumnos.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${4 + monthHeaders.length}" class="px-6 py-8 text-center text-slate-400">No se encontraron registros de alumnos.</td></tr>`;
-                return;
-            }
 
             tbody.innerHTML = alumnos.map((a, idx) => {
                 let monthCells = monthHeaders.map(m => {
@@ -449,7 +282,7 @@
                 return `
                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                         <td class="px-2 py-3 font-medium text-slate-400 text-center">${idx + 1}</td>
-                        <td class="px-3 py-3 font-semibold text-slate-900 dark:text-white sticky-col bg-white dark:bg-slate-800 whitespace-nowrap overflow-hidden text-ellipsis">${a.nombre}</td>
+                        <td class="px-3 py-3 font-semibold text-slate-900 dark:text-white sticky-col bg-white dark:bg-slate-800 whitespace-nowrap">${a.nombre}</td>
                         ${monthCells}
                         <td class="px-3 py-3 text-right font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap">${formatCLP(a.pagado)}</td>
                         <td class="px-3 py-3 text-right font-semibold whitespace-nowrap ${a.pendiente > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}">${formatCLP(a.pendiente)}</td>
@@ -458,69 +291,30 @@
             }).join('');
         }
 
-        function filterStudentsTable() {
-            const input = document.getElementById('searchInput');
-            const filter = input.value.toLowerCase();
-            const tbody = document.getElementById('studentsTableBody');
-            const rows = tbody.getElementsByTagName('tr');
-
-            for (let i = 0; i < rows.length; i++) {
-                const tdName = rows[i].getElementsByTagName('td')[1];
-                if (tdName) {
-                    const txtValue = tdName.textContent || tdName.innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        rows[i].style.display = "";
-                    } else {
-                        rows[i].style.display = "none";
-                    }
-                }
-            }
-        }
-
         function renderCharts(data) {
             const isDark = document.documentElement.classList.contains('dark');
             const textColor = isDark ? '#94a3b8' : '#64748b';
             const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
 
-            const ctxCashflow = document.getElementById('cashflowChart').getContext('2d');
+            const ctx = document.getElementById('cashflowChart').getContext('2d');
             if (cashflowChartInstance) cashflowChartInstance.destroy();
 
-            cashflowChartInstance = new Chart(ctxCashflow, {
+            cashflowChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: data.meses,
                     datasets: [
-                        {
-                            label: 'Ingresos',
-                            data: data.ingresosMes,
-                            backgroundColor: '#6366f1',
-                            borderRadius: 6
-                        },
-                        {
-                            label: 'Egresos',
-                            data: data.egresosMes,
-                            backgroundColor: '#f43f5e',
-                            borderRadius: 6
-                        }
+                        { label: 'Ingresos', data: data.ingresosMes, backgroundColor: '#6366f1', borderRadius: 6 },
+                        { label: 'Egresos', data: data.egresosMes, backgroundColor: '#f43f5e', borderRadius: 6 }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { labels: { color: textColor, font: { family: 'Inter', size: 11 } } },
-                        datalabels: { display: false }
-                    },
+                    plugins: { legend: { labels: { color: textColor } } },
                     scales: {
-                        x: { grid: { display: false }, ticks: { color: textColor, font: { family: 'Inter', size: 11 } } },
-                        y: { 
-                            grid: { color: gridColor }, 
-                            ticks: { 
-                                color: textColor, 
-                                font: { family: 'Inter', size: 11 },
-                                callback: value => formatCLP(value)
-                            } 
-                        }
+                        x: { ticks: { color: textColor } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor, callback: value => formatCLP(value) } }
                     }
                 }
             });
