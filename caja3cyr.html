@@ -17,44 +17,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Identity Services -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style> body { font-family: 'Inter', sans-serif; } </style>
 </head>
 <body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-200">
-
-    <!-- Pantalla de Autenticación con Google -->
-    <div id="authOverlay" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-xl max-w-sm w-full space-y-6 text-center">
-            <div class="space-y-2">
-                <div class="inline-block p-3 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-xl mb-1">
-                    <i class="fa-solid fa-graduation-cap text-2xl"></i>
-                </div>
-                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Portal del Curso</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Inicia sesión con tu correo autorizado para consultar las cuentas e ingresos.</p>
-            </div>
-
-            <!-- Botón Oficial de Google Sign-In -->
-            <div class="flex justify-center py-2">
-                <div id="g_id_onload"
-                     data-client_id="874197649186-tfntbqdngmq8os9s0scb5t2bgpueou4r.apps.googleusercontent.com"
-                     data-callback="handleCredentialResponse"
-                     data-auto_prompt="false">
-                </div>
-                <div class="g_id_signin"
-                     data-type="standard"
-                     data-shape="rectangular"
-                     data-theme="outline"
-                     data-text="sign_in_with"
-                     data-size="large"
-                     data-logo_alignment="left">
-                </div>
-            </div>
-
-            <p id="errorPass" class="text-xs text-rose-600 dark:text-rose-400 mt-2 hidden">Este correo de Google no está registrado o autorizado en la lista del curso.</p>
-        </div>
-    </div>
 
     <!-- Panel Principal / Dashboard -->
     <div id="dashboardContent" class="min-h-screen pb-12">
@@ -70,7 +36,7 @@
                             </div>
                             <div>
                                 <h1 class="text-sm sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">Estado de Cuentas del Curso</h1>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Transparencia Financiera (<span id="userRoleBadge" class="font-medium text-indigo-600 dark:text-indigo-400">--</span>)</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Portal Público de Transparencia Financiera</p>
                             </div>
                         </div>
                         
@@ -78,9 +44,6 @@
                         <div class="flex sm:hidden items-center space-x-1.5">
                             <button onclick="toggleDarkMode()" title="Cambiar tema" class="p-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-lg border border-slate-200 dark:border-slate-600">
                                 <i id="themeIconMobile" class="fa-solid fa-moon"></i>
-                            </button>
-                            <button onclick="logout()" title="Cerrar sesión" class="p-2 bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-xs rounded-lg border border-rose-200 dark:border-rose-900">
-                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
                             </button>
                         </div>
                     </div>
@@ -107,11 +70,6 @@
 
                         <button onclick="toggleDarkMode()" title="Cambiar modo oscuro" class="hidden sm:flex items-center justify-center p-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium text-xs rounded-lg transition-all border border-slate-200 dark:border-slate-600">
                             <i id="themeIcon" class="fa-solid fa-moon"></i>
-                        </button>
-
-                        <button onclick="logout()" title="Cerrar sesión" class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 font-medium text-xs rounded-lg transition-all border border-rose-200 dark:border-rose-900">
-                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                            <span>Salir</span>
                         </button>
                     </div>
 
@@ -161,19 +119,15 @@
                 </div>
             </div>
 
-            <!-- Visualizaciones / Gráficos -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-                <div id="historyChartWrapper" class="lg:col-span-2 bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+            <!-- Visualización / Gráficos -->
+            <div class="grid grid-cols-1 gap-6 sm:gap-8">
+                <div id="historyChartWrapper" class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
                     <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-4">Evolución de Ingresos y Egresos</h3>
                     <div class="h-60 sm:h-72"><canvas id="cashflowChart"></canvas></div>
                 </div>
-                <div id="statusDistributionCard" class="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
-                    <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-4">Cumplimiento de Cuotas</h3>
-                    <div class="h-60 sm:h-72"><canvas id="cuotasPieChart"></canvas></div>
-                </div>
             </div>
 
-            <!-- Tabla de Estado Individual por Alumno (Vista General / Directiva) -->
+            <!-- Tabla de Estado Individual por Alumno -->
             <div id="studentsTableCard" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm overflow-hidden">
                 <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Estado de Cuotas por Alumno</h3>
@@ -185,13 +139,12 @@
                             <tr id="studentsTableHeader" class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
                                 <th class="px-3 sm:px-4 py-3 font-semibold">N°</th>
                                 <th class="px-3 sm:px-4 py-3 font-semibold min-w-[160px]">Alumno / Apoderado</th>
-                                <th class="px-3 sm:px-4 py-3 font-semibold text-center">Estado</th>
                                 <th class="px-3 sm:px-4 py-3 font-semibold text-right">Total Pagado</th>
                                 <th class="px-3 sm:px-4 py-3 font-semibold text-right text-rose-600 dark:text-rose-400">Debe (Pendiente)</th>
                             </tr>
                         </thead>
                         <tbody id="studentsTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
-                            <tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">Cargando información del curso...</td></tr>
+                            <tr><td colspan="4" class="px-6 py-8 text-center text-slate-400">Cargando información del curso...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -201,24 +154,6 @@
 
     <script>
         // ==========================================
-        // BASE DE DATOS Y ROLES DE ACCESO
-        // ==========================================
-        const AUTHORIZED_USERS = {
-            "javier.vargas.saavedra@gmail.com": {
-                role: "Directiva",
-                studentName: null
-            },
-            "apoderado1@gmail.com": {
-                role: "Apoderado",
-                studentName: "Juan Pérez"
-            },
-            "apoderado2@gmail.com": {
-                role: "Apoderado",
-                studentName: "María Gómez"
-            }
-        };
-
-        // ==========================================
         // ENLACES CSV (PUBLICADOS DESDE GOOGLE SHEETS)
         // ==========================================
         const PERIODS_DATABASE = {
@@ -226,21 +161,14 @@
         };
 
         let cashflowChartInstance = null;
-        let cuotasPieChartInstance = null;
 
         // ==========================================
-        // INICIALIZACIÓN
+        // INICIALIZACIÓN DIRECTA
         // ==========================================
         window.onload = function() {
             initTheme();
             populatePeriodSelector();
-            
-            if (sessionStorage.getItem('authenticated') === 'true') {
-                document.getElementById('authOverlay').style.display = 'none';
-                const userEmail = sessionStorage.getItem('currentUserEmail');
-                applyUserRoleUI(userEmail);
-                fetchLiveData();
-            }
+            fetchLiveData();
         };
 
         function initTheme() {
@@ -287,54 +215,6 @@
         }
 
         // ==========================================
-        // AUTENTICACIÓN GOOGLE
-        // ==========================================
-        function parseJwt(token) {
-            try {
-                const base64Url = token.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(c => {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                return JSON.parse(jsonPayload);
-            } catch (e) {
-                return null;
-            }
-        }
-
-        function handleCredentialResponse(response) {
-            const responsePayload = parseJwt(response.credential);
-            const userEmail = responsePayload.email ? responsePayload.email.toLowerCase() : '';
-
-            if (AUTHORIZED_USERS[userEmail]) {
-                document.getElementById('authOverlay').style.display = 'none';
-                sessionStorage.setItem('authenticated', 'true');
-                sessionStorage.setItem('currentUserEmail', userEmail);
-                document.getElementById('errorPass').classList.add('hidden');
-
-                applyUserRoleUI(userEmail);
-                fetchLiveData();
-            } else {
-                document.getElementById('errorPass').classList.remove('hidden');
-            }
-        }
-
-        function applyUserRoleUI(email) {
-            const userObj = AUTHORIZED_USERS[email];
-            const badgeEl = document.getElementById('userRoleBadge');
-            if (userObj) {
-                badgeEl.innerText = userObj.role === 'Directiva' ? 'Directiva / Tesorería' : userObj.studentName;
-            }
-        }
-
-        function logout() {
-            sessionStorage.removeItem('authenticated');
-            sessionStorage.removeItem('currentUserEmail');
-            document.getElementById('authOverlay').style.display = 'flex';
-            document.getElementById('errorPass').classList.add('hidden');
-        }
-
-        // ==========================================
         // OBTENCIÓN Y PROCESAMIENTO DE DATOS
         // ==========================================
         function formatCLP(val) { return '$' + Math.round(val).toLocaleString('es-CL'); }
@@ -343,7 +223,6 @@
             return parseFloat((val || '').toString().replace(/[^0-9]/g, '')) || 0; 
         }
 
-        // Analizador de CSV para manejo de comillas y separadores
         function parseCSVLines(text) {
             const lines = text.split(/\r?\n/);
             return lines.map(line => {
@@ -429,19 +308,16 @@
             const rows = parseCSVLines(csvText);
             if (rows.length === 0) return { saldoTotal: 0, totalCuotas: 0, totalOtrosIngresos: 0, totalEgresos: 0, alumnos: [], meses, ingresosMes, egresosMes, monthHeaders: [] };
 
-            // Buscar la fila de encabezados dinámicamente
             let headerRowIndex = rows.findIndex(row => row.some(cell => cell.toLowerCase().includes('alumno') || cell.toLowerCase().includes('nombre')));
             if (headerRowIndex === -1) headerRowIndex = 0;
 
             const headers = rows[headerRowIndex].map(h => h.trim());
             const headersLower = headers.map(h => h.toLowerCase());
 
-            // Identificar índices de columnas clave
             const nameIdx = headersLower.findIndex(h => h.includes('alumno') || h.includes('nombre'));
             const totalPagadoIdx = headersLower.findIndex(h => h.includes('total pagado') || h.includes('pagado') || h.includes('haber'));
             const debeIdx = headersLower.findIndex(h => h.includes('debe') || h.includes('pendiente') || h.includes('saldo'));
 
-            // Identificar columnas de meses / aportes
             const knownMonths = ['marzo', 'mar', 'abril', 'abr', 'mayo', 'may', 'junio', 'jun', 'julio', 'jul', 'agosto', 'ago', 'septiembre', 'sep', 'octubre', 'oct', 'noviembre', 'nov', 'diciembre', 'dic', 'matricula', 'matrícula'];
             
             let monthColumns = [];
@@ -463,7 +339,6 @@
                 }
             }
 
-            // Procesar las filas de alumnos
             for (let i = headerRowIndex + 1; i < rows.length; i++) {
                 const cols = rows[i];
                 if (!cols || cols.length < 2) continue;
@@ -474,7 +349,6 @@
                 let pagado = totalPagadoIdx !== -1 ? cleanNumber(cols[totalPagadoIdx]) : 0;
                 let pendiente = debeIdx !== -1 ? cleanNumber(cols[debeIdx]) : 0;
 
-                // Extraer el desglose por mes/aporte
                 let mensualidades = {};
                 monthColumns.forEach(m => {
                     mensualidades[m.name] = cleanNumber(cols[m.index]);
@@ -515,48 +389,27 @@
         // RENDERIZADO DEL DASHBOARD
         // ==========================================
         function renderDashboard(data) {
-            const currentUserEmail = sessionStorage.getItem('currentUserEmail');
-            const userObj = AUTHORIZED_USERS[currentUserEmail];
-            const isApoderado = userObj && userObj.role === 'Apoderado';
+            document.getElementById('kpiTitlePrimary').innerText = 'Fondo Total Acumulado';
+            document.getElementById('kpiSaldoTotal').innerText = formatCLP(data.saldoTotal);
+            document.getElementById('kpiTotalCuotas').innerText = formatCLP(data.totalCuotas);
+            document.getElementById('kpiIngresosExtra').innerText = formatCLP(data.totalOtrosIngresos);
+            document.getElementById('kpiTotalEgresos').innerText = formatCLP(data.totalEgresos);
+            
+            document.getElementById('kpiIngresosExtraCard').style.display = 'block';
+            document.getElementById('kpiEgresosCard').style.display = 'block';
+            document.getElementById('studentsTableCard').style.display = 'block';
 
-            let activeAlumnos = data.alumnos;
-
-            if (isApoderado) {
-                activeAlumnos = data.alumnos.filter(a => a.nombre.toLowerCase().includes(userObj.studentName.toLowerCase()));
-                const alumnoInfo = activeAlumnos[0] || { pagado: 0, pendiente: 0 };
-
-                document.getElementById('kpiTitlePrimary').innerText = 'Estado de Tu Cuenta';
-                document.getElementById('kpiSaldoTotal').innerText = alumnoInfo.pendiente === 0 ? 'AL DÍA' : 'PENDIENTE';
-                document.getElementById('kpiTotalCuotas').innerText = formatCLP(alumnoInfo.pagado);
-                document.getElementById('kpiIngresosExtraCard').style.display = 'none';
-                document.getElementById('kpiEgresosCard').style.display = 'none';
-                document.getElementById('studentsTableCard').style.display = 'none';
-            } else {
-                document.getElementById('kpiTitlePrimary').innerText = 'Fondo Total Acumulado';
-                document.getElementById('kpiSaldoTotal').innerText = formatCLP(data.saldoTotal);
-                document.getElementById('kpiTotalCuotas').innerText = formatCLP(data.totalCuotas);
-                document.getElementById('kpiIngresosExtra').innerText = formatCLP(data.totalOtrosIngresos);
-                document.getElementById('kpiTotalEgresos').innerText = formatCLP(data.totalEgresos);
-                
-                document.getElementById('kpiIngresosExtraCard').style.display = 'block';
-                document.getElementById('kpiEgresosCard').style.display = 'block';
-                document.getElementById('studentsTableCard').style.display = 'block';
-
-                renderStudentsTable(activeAlumnos, data.monthHeaders || []);
-            }
-
-            renderCharts(data, isApoderado);
+            renderStudentsTable(data.alumnos, data.monthHeaders || []);
+            renderCharts(data);
         }
 
         function renderStudentsTable(alumnos, monthHeaders) {
             const headerRow = document.getElementById('studentsTableHeader');
             const tbody = document.getElementById('studentsTableBody');
 
-            // Encabezados dinámicos con meses/aportes
             let headerHTML = `
                 <th class="px-3 sm:px-4 py-3 font-semibold">N°</th>
                 <th class="px-3 sm:px-4 py-3 font-semibold min-w-[160px]">Alumno / Apoderado</th>
-                <th class="px-3 sm:px-4 py-3 font-semibold text-center">Estado</th>
             `;
 
             monthHeaders.forEach(m => {
@@ -567,100 +420,95 @@
                 <th class="px-3 sm:px-4 py-3 font-semibold text-right">Total Pagado</th>
                 <th class="px-3 sm:px-4 py-3 font-semibold text-right text-rose-600 dark:text-rose-400">Debe (Pendiente)</th>
             `;
+
             headerRow.innerHTML = headerHTML;
 
-            // Filas
-            tbody.innerHTML = '';
-
             if (alumnos.length === 0) {
-                const totalCols = 5 + monthHeaders.length;
-                tbody.innerHTML = `<tr><td colspan="${totalCols}" class="px-6 py-6 text-center text-slate-400">No se encontraron registros.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${4 + monthHeaders.length}" class="px-6 py-8 text-center text-slate-400">No se encontraron registros de alumnos.</td></tr>`;
                 return;
             }
 
-            alumnos.forEach((a, idx) => {
-                const statusBadge = a.alDia 
-                    ? '<span class="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded font-semibold text-[11px]">Al Día</span>'
-                    : '<span class="px-2 py-0.5 bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 rounded font-semibold text-[11px]">Pendiente</span>';
+            tbody.innerHTML = alumnos.map((a, idx) => {
+                let monthCells = monthHeaders.map(m => {
+                    const val = a.mensualidades[m] || 0;
+                    return `<td class="px-3 sm:px-4 py-3.5 text-center text-slate-500 font-mono">${val > 0 ? formatCLP(val) : '-'}</td>`;
+                }).join('');
 
-                let rowHTML = `
+                return `
                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                        <td class="px-3 sm:px-4 py-3.5 text-slate-400">${idx + 1}</td>
-                        <td class="px-3 sm:px-4 py-3.5 font-medium text-slate-800 dark:text-slate-200">${a.nombre}</td>
-                        <td class="px-3 sm:px-4 py-3.5 text-center">${statusBadge}</td>
-                `;
-
-                monthHeaders.forEach(m => {
-                    const montoMes = a.mensualidades ? (a.mensualidades[m] || 0) : 0;
-                    const displayMonto = montoMes > 0 
-                        ? `<span class="font-medium text-emerald-600 dark:text-emerald-400">${formatCLP(montoMes)}</span>` 
-                        : `<span class="text-slate-300 dark:text-slate-600">-</span>`;
-                    rowHTML += `<td class="px-3 sm:px-4 py-3.5 text-center whitespace-nowrap text-xs">${displayMonto}</td>`;
-                });
-
-                rowHTML += `
-                        <td class="px-3 sm:px-4 py-3.5 text-right font-bold text-slate-900 dark:text-white">${formatCLP(a.pagado)}</td>
-                        <td class="px-3 sm:px-4 py-3.5 text-right font-bold ${a.pendiente > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}">${formatCLP(a.pendiente)}</td>
+                        <td class="px-3 sm:px-4 py-3.5 font-medium text-slate-400">${idx + 1}</td>
+                        <td class="px-3 sm:px-4 py-3.5 font-medium text-slate-900 dark:text-white">${a.nombre}</td>
+                        ${monthCells}
+                        <td class="px-3 sm:px-4 py-3.5 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCLP(a.pagado)}</td>
+                        <td class="px-3 sm:px-4 py-3.5 text-right font-semibold ${a.pendiente > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}">${formatCLP(a.pendiente)}</td>
                     </tr>
                 `;
-                tbody.innerHTML += rowHTML;
-            });
+            }).join('');
         }
 
         function filterStudentsTable() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            if (!window.lastProcessedData) return;
-            const filtered = window.lastProcessedData.alumnos.filter(a => a.nombre.toLowerCase().includes(query));
-            renderStudentsTable(filtered, window.lastProcessedData.monthHeaders || []);
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            const tbody = document.getElementById('studentsTableBody');
+            const rows = tbody.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const tdName = rows[i].getElementsByTagName('td')[1];
+                if (tdName) {
+                    const txtValue = tdName.textContent || tdName.innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        rows[i].style.display = "";
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }
+            }
         }
 
-        function renderCharts(data, isApoderado) {
-            if (cashflowChartInstance) cashflowChartInstance.destroy();
-            if (cuotasPieChartInstance) cuotasPieChartInstance.destroy();
-
+        function renderCharts(data) {
             const isDark = document.documentElement.classList.contains('dark');
             const textColor = isDark ? '#94a3b8' : '#64748b';
-            const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
 
-            // Gráfico de Líneas / Histórico
-            cashflowChartInstance = new Chart(document.getElementById('cashflowChart'), {
-                type: 'line',
+            const ctxCashflow = document.getElementById('cashflowChart').getContext('2d');
+            if (cashflowChartInstance) cashflowChartInstance.destroy();
+
+            cashflowChartInstance = new Chart(ctxCashflow, {
+                type: 'bar',
                 data: {
                     labels: data.meses,
                     datasets: [
-                        { label: 'Ingresos ($)', data: data.ingresosMes, borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.1)', fill: true, tension: 0.3 },
-                        { label: 'Egresos ($)', data: data.egresosMes, borderColor: '#f43f5e', backgroundColor: 'rgba(244, 63, 94, 0.1)', fill: true, tension: 0.3 }
+                        {
+                            label: 'Ingresos',
+                            data: data.ingresosMes,
+                            backgroundColor: '#6366f1',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Egresos',
+                            data: data.egresosMes,
+                            backgroundColor: '#f43f5e',
+                            borderRadius: 6
+                        }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: textColor } } },
-                    scales: {
-                        x: { ticks: { color: textColor }, grid: { color: gridColor } },
-                        y: { ticks: { color: textColor }, grid: { color: gridColor } }
-                    }
-                }
-            });
-
-            // Gráfico de Donas / Cumplimiento
-            const alDiaCount = data.alumnos.filter(a => a.alDia).length;
-            const pendientesCount = data.alumnos.length - alDiaCount;
-
-            cuotasPieChartInstance = new Chart(document.getElementById('cuotasPieChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Al Día', 'Pendientes'],
-                    datasets: [{
-                        data: [alDiaCount, pendientesCount],
-                        backgroundColor: ['#10b981', '#f43f5e']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom', labels: { color: textColor } }
+                        legend: { labels: { color: textColor, font: { family: 'Inter', size: 11 } } },
+                        datalabels: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: textColor, font: { family: 'Inter', size: 11 } } },
+                        y: { 
+                            grid: { color: gridColor }, 
+                            ticks: { 
+                                color: textColor, 
+                                font: { family: 'Inter', size: 11 },
+                                callback: value => formatCLP(value)
+                            } 
+                        }
                     }
                 }
             });
