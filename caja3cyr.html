@@ -301,6 +301,8 @@
             let totalOtrosIngresos = 0;
             let totalEgresos = 0;
             let alumnos = [];
+            
+            // Meses a mapear en el gráfico
             let meses = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov'];
             let ingresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0];
             let egresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -318,7 +320,7 @@
             const totalPagadoIdx = headersLower.findIndex(h => h.includes('total pagado') || h.includes('pagado') || h.includes('haber'));
             const debeIdx = headersLower.findIndex(h => h.includes('debe') || h.includes('pendiente') || h.includes('saldo'));
 
-            const knownMonths = ['marzo', 'mar', 'abril', 'abr', 'mayo', 'may', 'junio', 'jun', 'julio', 'jul', 'agosto', 'ago', 'septiembre', 'sep', 'octubre', 'oct', 'noviembre', 'nov', 'diciembre', 'dic', 'matricula', 'matrícula'];
+            const knownMonths = ['marzo', 'mar', 'abril', 'abr', 'mayo', 'may', 'junio', 'jun', 'julio', 'jul', 'agosto', 'ago', 'septiembre', 'sep', 'octubre', 'oct', 'noviembre', 'nov', 'diciembre', 'dic'];
             
             let monthColumns = [];
             headers.forEach((h, idx) => {
@@ -329,15 +331,6 @@
                     }
                 }
             });
-
-            if (monthColumns.length === 0 && nameIdx !== -1) {
-                const maxIndex = totalPagadoIdx !== -1 ? totalPagadoIdx : (debeIdx !== -1 ? debeIdx : headers.length);
-                for (let i = nameIdx + 1; i < maxIndex; i++) {
-                    if (headers[i]) {
-                        monthColumns.push({ index: i, name: headers[i] });
-                    }
-                }
-            }
 
             for (let i = headerRowIndex + 1; i < rows.length; i++) {
                 const cols = rows[i];
@@ -351,7 +344,16 @@
 
                 let mensualidades = {};
                 monthColumns.forEach(m => {
-                    mensualidades[m.name] = cleanNumber(cols[m.index]);
+                    const montoMes = cleanNumber(cols[m.index]);
+                    mensualidades[m.name] = montoMes;
+
+                    // Mapear acumulado al gráfico según el mes correspondiente
+                    const nameLower = m.name.toLowerCase();
+                    meses.forEach((mesLabel, idx) => {
+                        if (nameLower.includes(mesLabel.toLowerCase())) {
+                            ingresosMes[idx] += montoMes;
+                        }
+                    });
                 });
 
                 if (totalPagadoIdx === -1 && monthColumns.length > 0) {
