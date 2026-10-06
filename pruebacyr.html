@@ -101,12 +101,11 @@
     </div>
 
     <script>
-        // 1. URL del CSV para la TABLA DE ALUMNOS
-        const CUOTAS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlL2qIB_EBDKk_hzeSlZQu__lwU1_MEOgv5_T5rQJWot0Apr-qa_pTAWZnigQRzmJy_tBZymbsooAU/pub?gid=0&single=true&output=csv";
+        // 1. CSV para la TABLA DE ALUMNOS (Cuotas)
+        const CUOTAS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlL2qIB_EBDKk_hzeSlZQu__lwU1_MEOgv5_T5rQJWot0Apr-qa_pTAWZnigQRzmJy_tBZymbsooAU/pub?output=csv";
         
-        // 2. URL del CSV para TARJETAS Y GRÁFICOS (Pestaña Libro de Caja)
-        // Publica tu hoja/pestaña "Caja" como CSV en Google Sheets y coloca aquí el enlace:
-        const CAJA_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlL2qIB_EBDKk_hzeSlZQu__lwU1_MEOgv5_T5rQJWot0Apr-qa_pTAWZnigQRzmJy_tBZymbsooAU/pub?gid=810513459&single=true&output=csv"; 
+        // 2. CSV para TARJETAS Y GRÁFICOS (Pestaña Libro de Caja)
+        const CAJA_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlL2qIB_EBDKk_hzeSlZQu__lwU1_MEOgv5_T5rQJWot0Apr-qa_pTAWZnigQRzmJy_tBZymbsooAU/pub?gid=810513459&single=true&output=csv";
 
         let cashflowChartInstance = null;
 
@@ -154,12 +153,12 @@
             const icon = document.getElementById('syncIcon');
             if (icon) icon.classList.add('fa-spin');
             try {
-                // Carga de CSV de Cuotas
+                // Carga de Cuotas
                 const resCuotas = await fetch(CUOTAS_CSV_URL + "&_t=" + Date.now());
                 const csvCuotasText = await resCuotas.text();
                 const cuotasData = processCuotasData(csvCuotasText);
 
-                // Carga de CSV de Caja
+                // Carga de Caja
                 let cajaData = { totalOtrosIngresos: 0, totalEgresos: 0, ingresosMes: [0,0,0,0,0,0,0,0,0,0], egresosMes: [0,0,0,0,0,0,0,0,0,0] };
                 if (CAJA_CSV_URL) {
                     try {
@@ -186,9 +185,6 @@
             }
         }
 
-        // ==========================================
-        // PROCESAMIENTO EXCLUSIVO: TABLA DE ALUMNOS
-        // ==========================================
         function processCuotasData(csvText) {
             let totalCuotas = 0;
             let alumnos = [];
@@ -249,18 +245,9 @@
                 totalPendienteAcumulado += pendiente;
             }
 
-            return {
-                alumnos,
-                totalCuotas,
-                monthHeaders: monthColumns.map(m => m.name),
-                totalesPorMes,
-                totalPendienteAcumulado
-            };
+            return { alumnos, totalCuotas, monthHeaders: monthColumns.map(m => m.name), totalesPorMes, totalPendienteAcumulado };
         }
 
-        // ==========================================
-        // PROCESAMIENTO EXCLUSIVO: CAJA (TARJETAS/GRÁFICOS)
-        // ==========================================
         function processCajaData(csvText) {
             let totalOtrosIngresos = 0;
             let totalEgresos = 0;
@@ -270,26 +257,20 @@
             let egresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
             const rows = parseCSVLines(csvText);
-            if (rows.length < 2) {
-                return { totalOtrosIngresos, totalEgresos, meses: mesesLabels, ingresosMes, egresosMes };
-            }
+            if (rows.length < 2) return { totalOtrosIngresos, totalEgresos, meses: mesesLabels, ingresosMes, egresosMes };
 
             let headerIdx = rows.findIndex(r => r.some(c => {
                 const l = c.toLowerCase();
-                return l.includes('ingreso') || l.includes('egreso') || l.includes('monto') || l.includes('concepto') || l.includes('fecha');
+                return l.includes('ingreso') || l.includes('egreso') || l.includes('gasto') || l.includes('monto') || l.includes('fecha');
             }));
             if (headerIdx === -1) headerIdx = 0;
 
             const headersLower = rows[headerIdx].map(h => h.toLowerCase());
 
             let fechaIdx = headersLower.findIndex(h => h.includes('fecha'));
-            let conceptoIdx = headersLower.findIndex(h => h.includes('concepto') || h.includes('detalle') || h.includes('descripcion'));
-            let ingresoIdx = headersLower.findIndex(h => h.includes('ingreso'));
-            let egresoIdx = headersLower.findIndex(h => h.includes('egreso') || h.includes('gasto'));
-
-            // Respaldo por defecto para la estructura típica de columnas
-            if (ingresoIdx === -1) ingresoIdx = 1;
-            if (egresoIdx === -1) egresoIdx = 2;
+            let conceptoIdx = headersLower.findIndex(h => h.includes('concepto') || h.includes('detalle') || h.includes('descripcion') || h.includes('tipo'));
+            let ingresoIdx = headersLower.findIndex(h => h.includes('ingreso') || h.includes('entrada'));
+            let egresoIdx = headersLower.findIndex(h => h.includes('egreso') || h.includes('gasto') || h.includes('salida'));
 
             for (let i = headerIdx + 1; i < rows.length; i++) {
                 const cols = rows[i];
@@ -298,20 +279,18 @@
                 const concepto = conceptoIdx !== -1 && cols[conceptoIdx] ? cols[conceptoIdx].toLowerCase() : '';
                 if (concepto.includes('total') || concepto.includes('saldo inicial')) continue;
 
-                const montoIngreso = cleanNumber(cols[ingresoIdx]);
-                const montoEgreso = cleanNumber(cols[egresoIdx]);
+                const montoIngreso = ingresoIdx !== -1 ? cleanNumber(cols[ingresoIdx]) : 0;
+                const montoEgreso = egresoIdx !== -1 ? cleanNumber(cols[egresoIdx]) : 0;
 
                 totalOtrosIngresos += montoIngreso;
                 totalEgresos += montoEgreso;
 
-                // Mapear transacciones por fecha/mes para el gráfico
                 let mIndex = -1;
-                if (fechaIdx !== -1 && cols[fechaIdx]) {
-                    const strFecha = cols[fechaIdx].toLowerCase();
-                    mesesLabels.forEach((mes, idx) => {
-                        if (strFecha.includes(mes.toLowerCase())) mIndex = idx;
-                    });
-                }
+                const textoBusqueda = ((fechaIdx !== -1 ? cols[fechaIdx] : '') + ' ' + concepto).toLowerCase();
+
+                mesesLabels.forEach((mes, idx) => {
+                    if (textoBusqueda.includes(mes.toLowerCase())) mIndex = idx;
+                });
 
                 if (mIndex !== -1) {
                     ingresosMes[mIndex] += montoIngreso;
@@ -319,18 +298,9 @@
                 }
             }
 
-            return {
-                totalOtrosIngresos,
-                totalEgresos,
-                meses: mesesLabels,
-                ingresosMes,
-                egresosMes
-            };
+            return { totalOtrosIngresos, totalEgresos, meses: mesesLabels, ingresosMes, egresosMes };
         }
 
-        // ==========================================
-        // RENDERIZADO
-        // ==========================================
         function renderDashboard(data) {
             document.getElementById('kpiSaldoTotal').innerText = formatCLP(data.saldoTotal || 0);
             document.getElementById('kpiTotalCuotas').innerText = formatCLP(data.totalCuotas || 0);
@@ -408,11 +378,7 @@
                 const tdName = rows[i].getElementsByTagName('td')[1];
                 if (tdName) {
                     const txtValue = tdName.textContent || tdName.innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        rows[i].style.display = "";
-                    } else {
-                        rows[i].style.display = "none";
-                    }
+                    rows[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
                 }
             }
         }
