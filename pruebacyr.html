@@ -101,8 +101,349 @@
     </div>
 
     <script>
-        // 1. CSV para la TABLA DE ALUMNOS (Pestaña Cuotas)
         const CUOTAS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlL2qIB_EBDKk_hzeSlZQu__lwU1_MEOgv5_T5rQJWot0Apr-qa_pTAWZnigQRzmJy_tBZymbsooAU/pub?output=csv";
+        const CAJA_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlL2qIB_EBDKk_hzeSlZQu__lwU1_MEOgv5_T5rQJWot0Apr-qa_pTAWZnigQRzmJy_tBZymbsooAU/pub?gid=810513459&single=true&output=csv";
+
+        let cashflowChartInstance = null;
+
+        window.onload = function() {
+            initTheme();
+            fetchLiveData();
+        };
+
+        function initTheme() {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            if (window.lastProcessedData) {
+                renderDashboard(window.lastProcessedData);
+            }
+        }
+
+        function formatCLP(val) { 
+            return '$' + Math.round(val || 0).toLocaleString('es-CL'); 
+        }
         
-        // 2. CSV para TARJETAS Y GRÁFICOS (Pestaña Libro de Caja)
-        const CAJA_CSV_URL = "
+        function cleanNumber(val) { 
+            if (typeof val === 'number') return val;
+            if (!val) return 0;
+            let str = val.toString().trim().replace(/\$/g, '').replace(/\s/g, '');
+            if (str.includes('.') && str.includes(',')) {
+                str = str.replace(/\./g, '').replace(',', '.');
+            } else if (str.includes('.')) {
+                str = str.replace(/\./g, '');
+            } else if (str.includes(',')) {
+                str = str.replace(',', '.');
+            }
+            return parseFloat(str) || 0; 
+        }
+
+        function getMonthIndexFromDateStr(dateStr) {
+            if (!dateStr || dateStr === '-') return -1;
+            const parts = dateStr.toString().trim().split('/');
+            if (parts.length >= 2) {
+                const month = parseInt(parts[1], 10);
+                if (month >= 3 && month <= 12) {
+                    return month - 3; // Marzo -> 0
+                }
+            }
+            return -1;
+        }
+
+        function parseCSVLines(text) {
+            return text.split(/\r?\n/).map(line => {
+                const cells = [];
+                let current = '', inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+                        else { inQuotes = !inQuotes; }
+                    } else if (char === ',' && !inQuotes) {
+                        cells.push(current.trim()); current = '';
+                    } else { current += char; }
+                }
+                cells.push(current.trim());
+                return cells;
+            });
+        }
+
+        async function fetchLiveData() {
+            const icon = document.getElementById('syncIcon');
+            if (icon) icon.classList.add('fa-spin');
+            
+            try {
+                // Fetch Pestaña Cuotas
+                const resCuotas = await fetch(CUOTAS_CSV_URL + "&_t=" + Date.now());
+                const csvCuotasText = await resCuotas.text();
+                const cuotasData = processCuotasData(csvCuotasText);
+
+                // Fetch Pestaña Caja
+                let cajaData = { totalOtrosIngresos: 0, totalEgresos: 0, ingresosMes: [0,0,0,0,0,0,0,0,0,0], egresosMes: [0,0,0,0,0,0,0,0,0,0] };
+                if (CAJA_CSV_URL) {
+                    try {
+                        const resCaja = await fetch(CAJA_CSV_URL + "&_t=" + Date.now());
+                        const csvCajaText = await resCaja.text();
+                        cajaData = processCajaData(csvCajaText);
+                    } catch (errCaja) {
+                        console.error("Error al obtener datos de Caja:", errCaja);
+                    }
+                }
+
+                const combinedData = {
+                    ...cuotasData,
+                    ...cajaData,
+                    saldoTotal: (cuotasData.totalCuotas + cajaData.totalOtrosIngresos) - cajaData.totalEgresos
+                };
+
+                window.lastProcessedData = combinedData;
+                renderDashboard(combinedData);
+            } catch (err) {
+                console.error("Error general en fetchLiveData:", err);
+            } finally {
+                if (icon) icon.classList.remove('fa-spin');
+            }
+        }
+
+        function processCuotasData(csvText) {
+            let totalCuotas = 0;
+            let alumnos = [];
+            const rows = parseCSVLines(csvText);
+            
+            let headerIdx = rows.findIndex(r => r.some(c => {
+                const l = c.toLowerCase();
+                return l.includes('alumno') || l.includes('apellidos') || l.includes('nombre');
+            }));
+            if (headerIdx === -1) headerIdx = 0;
+
+            const headers = rows[headerIdx].map(h => h.trim());
+            const headersLower = headers.map(h => h.toLowerCase());
+
+            let nameIdx = headersLower.findIndex(h => h.includes('apellidos') || h.includes('nombre'));
+            if (nameIdx === -1) nameIdx = headersLower.findIndex(h => h.includes('alumno'));
+            if (nameIdx === -1) nameIdx = 1;
+
+            const totalPagadoIdx = headersLower.findIndex(h => h.includes('total pagado') || (h.includes('total') && !h.includes('gastos')));
+            const debeIdx = headersLower.findIndex(h => h.includes('debe') || h.includes('pendiente'));
+
+            const knownMonths = ['marzo', 'mar', 'abril', 'abr', 'mayo', 'may', 'junio', 'jun', 'julio', 'jul', 'agosto', 'ago', 'septiembre', 'sep', 'octubre', 'oct', 'noviembre', 'nov', 'diciembre', 'dic'];
+
+            let monthColumns = [];
+            headers.forEach((h, idx) => {
+                const hl = h.toLowerCase();
+                if (knownMonths.some(m => hl.includes(m))) {
+                    monthColumns.push({ index: idx, name: h });
+                }
+            });
+
+            let totalesPorMes = new Array(monthColumns.length).fill(0);
+            let totalPendienteAcumulado = 0;
+
+            for (let i = headerIdx + 1; i < rows.length; i++) {
+                const cols = rows[i];
+                if (!cols || cols.length <= nameIdx) continue;
+
+                const nombre = cols[nameIdx];
+                if (!nombre || nombre.trim() === '' || nombre.toLowerCase().includes('total') || nombre.toLowerCase().includes('gastos')) continue;
+
+                let pagado = totalPagadoIdx !== -1 ? cleanNumber(cols[totalPagadoIdx]) : 0;
+                let pendiente = debeIdx !== -1 ? cleanNumber(cols[debeIdx]) : 0;
+                let mensualidades = {};
+
+                monthColumns.forEach((m, mIdx) => {
+                    const montoMes = cleanNumber(cols[m.index]);
+                    mensualidades[m.name] = montoMes;
+                    totalesPorMes[mIdx] += montoMes;
+                });
+
+                if (totalPagadoIdx === -1) {
+                    pagado = Object.values(mensualidades).reduce((acc, v) => acc + v, 0);
+                }
+
+                alumnos.push({ id: alumnos.length + 1, nombre, pagado, pendiente, mensualidades });
+                totalCuotas += pagado;
+                totalPendienteAcumulado += pendiente;
+            }
+
+            return { alumnos, totalCuotas, monthHeaders: monthColumns.map(m => m.name), totalesPorMes, totalPendienteAcumulado };
+        }
+
+        function processCajaData(csvText) {
+            let totalOtrosIngresos = 0;
+            let totalEgresos = 0;
+
+            let mesesLabels = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            let ingresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            let egresosMes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+            const rows = parseCSVLines(csvText);
+            if (rows.length < 2) return { totalOtrosIngresos, totalEgresos, meses: mesesLabels, ingresosMes, egresosMes };
+
+            let headerIdx = rows.findIndex(r => r.some(c => c.toLowerCase().trim() === 'ingreso'));
+            if (headerIdx === -1) headerIdx = 0;
+
+            for (let i = headerIdx + 1; i < rows.length; i++) {
+                const cols = rows[i];
+                if (!cols || cols.length === 0) continue;
+
+                // 1. Columnas Ingresos (Columna A: Concepto, B: Fecha, C: Monto)
+                const conceptoIngreso = (cols[0] || '').trim();
+                const fechaIngreso = (cols[1] || '').trim();
+                const montoIngreso = cleanNumber(cols[2] || 0);
+
+                const conceptoIngresoLower = conceptoIngreso.toLowerCase();
+                if (
+                    conceptoIngreso &&
+                    !conceptoIngresoLower.includes('total') &&
+                    !conceptoIngresoLower.includes('caja') &&
+                    !conceptoIngresoLower.includes('cuota') &&
+                    montoIngreso > 0
+                ) {
+                    totalOtrosIngresos += montoIngreso;
+                    const mIndex = getMonthIndexFromDateStr(fechaIngreso);
+                    if (mIndex >= 0 && mIndex < 10) {
+                        ingresosMes[mIndex] += montoIngreso;
+                    }
+                }
+
+                // 2. Columnas Egresos (Columna E: Concepto, F: Fecha, G: Monto)
+                const conceptoEgreso = (cols[4] || '').trim();
+                const fechaEgreso = (cols[5] || '').trim();
+                const montoEgreso = cleanNumber(cols[6] || 0);
+
+                const conceptoEgresoLower = conceptoEgreso.toLowerCase();
+                if (
+                    conceptoEgreso &&
+                    conceptoEgreso !== '-' &&
+                    !conceptoEgresoLower.includes('total') &&
+                    montoEgreso > 0
+                ) {
+                    totalEgresos += montoEgreso;
+                    const mIndex = getMonthIndexFromDateStr(fechaEgreso);
+                    if (mIndex >= 0 && mIndex < 10) {
+                        egresosMes[mIndex] += montoEgreso;
+                    }
+                }
+            }
+
+            return { totalOtrosIngresos, totalEgresos, meses: mesesLabels, ingresosMes, egresosMes };
+        }
+
+        function renderDashboard(data) {
+            document.getElementById('kpiSaldoTotal').innerText = formatCLP(data.saldoTotal || 0);
+            document.getElementById('kpiTotalCuotas').innerText = formatCLP(data.totalCuotas || 0);
+            document.getElementById('kpiIngresosExtra').innerText = formatCLP(data.totalOtrosIngresos || 0);
+            document.getElementById('kpiTotalEgresos').innerText = formatCLP(data.totalEgresos || 0);
+
+            renderStudentsTable(data);
+            renderCharts(data);
+        }
+
+        function renderStudentsTable(data) {
+            const { alumnos = [], monthHeaders = [], totalesPorMes = [], totalCuotas = 0, totalPendienteAcumulado = 0 } = data;
+            const headerRow = document.getElementById('studentsTableHeader');
+            const tbody = document.getElementById('studentsTableBody');
+            const tfoot = document.getElementById('studentsTableFooter');
+
+            let headerHTML = `
+                <th class="px-2 py-3 font-semibold text-center w-10">N°</th>
+                <th class="px-3 py-3 font-semibold sticky-col bg-slate-50 dark:bg-slate-800 min-w-[200px]">Alumno / Apoderado</th>
+            `;
+            monthHeaders.forEach(m => headerHTML += `<th class="px-2 py-3 font-semibold text-center whitespace-nowrap">${m}</th>`);
+            headerHTML += `
+                <th class="px-3 py-3 font-semibold text-right whitespace-nowrap">Total Pagado</th>
+                <th class="px-3 py-3 font-semibold text-right text-rose-600 dark:text-rose-400 whitespace-nowrap">Debe (Pendiente)</th>
+            `;
+            headerRow.innerHTML = headerHTML;
+
+            if (alumnos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${4 + monthHeaders.length}" class="px-6 py-8 text-center text-slate-400">No se encontraron registros de alumnos.</td></tr>`;
+                tfoot.innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = alumnos.map((a, idx) => {
+                let monthCells = monthHeaders.map(m => {
+                    const val = a.mensualidades[m] || 0;
+                    return val > 0 
+                        ? `<td class="px-2 py-3 text-center font-semibold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">${formatCLP(val)}</td>`
+                        : `<td class="px-2 py-3 text-center text-slate-400 font-mono text-[11px]">-</td>`;
+                }).join('');
+
+                return `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                        <td class="px-2 py-3 font-medium text-slate-400 text-center">${idx + 1}</td>
+                        <td class="px-3 py-3 font-semibold text-slate-900 dark:text-white sticky-col bg-white dark:bg-slate-800 whitespace-nowrap">${a.nombre}</td>
+                        ${monthCells}
+                        <td class="px-3 py-3 text-right font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap">${formatCLP(a.pagado)}</td>
+                        <td class="px-3 py-3 text-right font-semibold whitespace-nowrap ${a.pendiente > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}">${formatCLP(a.pendiente)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            let footerMonthCells = totalesPorMes.map(total => {
+                return `<td class="px-2 py-3 text-center whitespace-nowrap text-emerald-600 dark:text-emerald-400">${formatCLP(total)}</td>`;
+            }).join('');
+
+            tfoot.innerHTML = `
+                <tr>
+                    <td class="px-2 py-3 text-center"></td>
+                    <td class="px-3 py-3 sticky-col bg-slate-100 dark:bg-slate-700 whitespace-nowrap">Total Recaudado por Mes</td>
+                    ${footerMonthCells}
+                    <td class="px-3 py-3 text-right whitespace-nowrap">${formatCLP(totalCuotas)}</td>
+                    <td class="px-3 py-3 text-right whitespace-nowrap ${totalPendienteAcumulado > 0 ? 'text-rose-600 dark:text-rose-400' : ''}">${formatCLP(totalPendienteAcumulado)}</td>
+                </tr>
+            `;
+        }
+
+        function filterStudentsTable() {
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            const tbody = document.getElementById('studentsTableBody');
+            const rows = tbody.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const tdName = rows[i].getElementsByTagName('td')[1];
+                if (tdName) {
+                    const txtValue = tdName.textContent || tdName.innerText;
+                    rows[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+                }
+            }
+        }
+
+        function renderCharts(data) {
+            const isDark = document.documentElement.classList.contains('dark');
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+            const ctx = document.getElementById('cashflowChart').getContext('2d');
+            if (cashflowChartInstance) cashflowChartInstance.destroy();
+
+            cashflowChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.meses || ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                    datasets: [
+                        { label: 'Ingresos', data: data.ingresosMes || [], backgroundColor: '#6366f1', borderRadius: 6 },
+                        { label: 'Egresos', data: data.egresosMes || [], backgroundColor: '#f43f5e', borderRadius: 6 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: textColor } } },
+                    scales: {
+                        x: { ticks: { color: textColor } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor, callback: value => formatCLP(value) } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
